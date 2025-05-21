@@ -1,0 +1,2 @@
+serviceClass: tmg.za.client.FileEditor.FileService
+path: 30D22D0646C708F0D8DE0BD7D4CD41C5.gwt.rpc

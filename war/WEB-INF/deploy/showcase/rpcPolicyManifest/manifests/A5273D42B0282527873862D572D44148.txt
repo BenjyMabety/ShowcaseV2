@@ -1,0 +1,2 @@
+serviceClass: tmg.za.client.Login.GreetingService
+path: 7C65F3A4C81040A3F7681F8200C2B9DF.gwt.rpc

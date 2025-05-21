@@ -1,0 +1,4 @@
+# Module showcase
+# RPC service class, partial path of RPC policy file
+tmg.za.client.FileEditor.FileService, 30D22D0646C708F0D8DE0BD7D4CD41C5.gwt.rpc
+tmg.za.client.Login.GreetingService, 7C65F3A4C81040A3F7681F8200C2B9DF.gwt.rpc
