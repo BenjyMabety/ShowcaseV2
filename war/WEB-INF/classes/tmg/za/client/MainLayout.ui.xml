@@ -1,0 +1,49 @@
+
+<!DOCTYPE ui:UiBinder SYSTEM "http://dl.google.com/gwt/DTD/xhtml.ent">
+<ui:UiBinder xmlns:ui="urn:ui:com.google.gwt.uibinder"
+	xmlns:g="urn:import:com.google.gwt.user.client.ui">
+	<ui:style type='tmg.za.shared.MyFoo.MyStyle'>
+	.enabledBall {
+		background-image: url('images/hardwood1.png'); background-repeat:no-repeat;background-position: center;background-size: auto;
+	}
+	.enabledSpace{
+		background-image: url('images/space1.jpg'); background-repeat:no-repeat;background-position: center;background-size: auto;
+	}
+	
+	.disabled { background-image:none; }
+	.text {
+	font-weight: bold; 
+	font-size:100px;
+	text-align:center;
+	
+}
+
+	</ui:style>
+<g:SplitLayoutPanel styleName='enabled'>
+
+<g:north size ='125'>
+	<g:Label ui:field="headerLabel">Java GWT Showcase</g:Label>
+</g:north>
+ <g:west size='360'>
+	<g:VerticalPanel ui:field="mainPanel">
+
+	</g:VerticalPanel>
+ </g:west>
+ <g:center>
+ <g:HorizontalPanel ui:field="mainCanvas" >
+ <g:VerticalPanel ui:field="canvasPanel">
+ <g:TextBox ui:field = "tbDocument" visible="false" readOnly = "true"></g:TextBox>
+ 	<g:TextArea ui:field="taCanvas" visible="false" readOnly="true" width="500px" height="500px" > </g:TextArea>
+ </g:VerticalPanel>
+ <g:VerticalPanel ui:field="buttonPanel" visible="false">
+  </g:VerticalPanel>
+ </g:HorizontalPanel>
+ </g:center>
+ <g:east size = '360'>
+ <g:VerticalPanel ui:field="controlPanel" visible ="false">
+
+ </g:VerticalPanel>
+ </g:east>
+</g:SplitLayoutPanel>
+
+</ui:UiBinder> 
