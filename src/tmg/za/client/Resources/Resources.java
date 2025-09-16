@@ -29,6 +29,9 @@ public interface Resources extends ClientBundle {
 	@Source("explosion1.png")
 	ImageResource explosion();
 
+	@Source("fruit.png")
+	ImageResource fruit();
+
 	@Source("keyboard.png")
 	ImageResource keyboard();
 
@@ -49,6 +52,9 @@ public interface Resources extends ClientBundle {
 
 	@Source("ship.png")
 	ImageResource ship();
+
+	@Source("snake.png")
+	ImageResource snake();
 
 	@Source("up.png")
 	ImageResource up();
