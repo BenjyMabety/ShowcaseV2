@@ -99,7 +99,7 @@ public class MainLayout extends Composite {
 		mainPanel.add(fileEditor.getPbFileEditor());
 		mainPanel.add(ball.getPbBall());
 		mainPanel.add(sf.getPbSpaceForce());
-		mainPanel.add(snake.getPbSnake());
+		// mainPanel.add(snake.getPbSnake());
 
 		login.getPbLogin().addClickHandler(new ClickHandler() {
 
