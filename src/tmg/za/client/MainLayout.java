@@ -305,12 +305,26 @@ public class MainLayout extends Composite {
 							double cTop = childTopStr.isEmpty() ? 0.0 : Double.valueOf(childTopStr);
 
 							// If head coordinates perfectly match a tail segment coordinate, end the game
+							// If head coordinates perfectly match a tail segment coordinate, end the game
 							if (hLeft == cLeft && hTop == cTop) {
 								t.cancel(); // Stop the game loop timer immediately
 								Window.alert("Game Over! You bit your tail.");
+
+								// 1. Clear out tail children and reset head position
 								snake.reset();
+
+								// 2. Clear out score tracking variables back to zero
+								score = 0;
+								scoreLabel.setText("Score: 0");
+
+								// 3. Re-initialize baseline starting speed delay
+								currentSpeed = 1000;
+
+								// 4. Automatically re-launch the game timer loop instantly
+								t.scheduleRepeating(currentSpeed);
 								return; // Exit the loop and redraw execution early
 							}
+
 						}
 
 						// 7. Evaluate map food layout flags (Removed the 100 child cap restriction)

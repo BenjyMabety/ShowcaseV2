@@ -432,14 +432,25 @@ public class Snake extends Movable {
 	 * 
 	 */
 	public void reset() {
+		// 1. Remove all old tail segment images from the canvas layout
 		for (Snake child : children) {
 			child.getImage().removeFromParent();
 		}
 		children.clear();
+
+		// 2. Position the main head back to the top-left corner origin
 		image.getElement().getStyle().setPosition(Position.ABSOLUTE);
 		image.getElement().getStyle().setLeft(0, Unit.PX);
 		image.getElement().getStyle().setTop(0, Unit.PX);
 
+		// 3. Clear out historical variables so the tail doesn't spawn elsewhere
+		setLastLeftVal(0.0);
+		setLastTopVal(0.0);
+		setRightStep(0);
+		setTopStep(0);
+
+		// 4. Force direction back to moving right instantly so it is never stationary
+		setDirection(Direction.RIGHT);
 	}
 
 }
