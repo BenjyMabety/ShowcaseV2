@@ -56,12 +56,6 @@ http://localhost:8080/Showcase/Showcase.html
 
 ---
 
-## 📋 Project Roadmap & TO-DOs
-
-### ⚙️ Architecture & Build Management
-- [ ] **Implement Maven/Gradle Build Scripts**: Migrate the build structure to Maven (`pom.xml`) or Gradle to eliminate IDE-specific dependencies and allow automated one-command WAR packaging.
-- [ ] **Add Git Environment Filters**: Introduce a generic root `.gitignore` file to scrub IDE-specific metadata (`.settings/`, `.classpath`) and local compilation dumps (`/gwt-unitCache/`) from public tracking.
-
 ### 🎮 Gameplay Optimization
 - [ ] **Abstract Object Movement Engine**: Refactor standard positioning metrics across different games into a streamlined, reusable rendering pipeline within the shared `Movable` structure.
 - [ ] **Enhance Input Latency Handling**: Introduce an event processing queue to store high-speed button commands sequentially, preventing overlapping input checks inside tight frames.
