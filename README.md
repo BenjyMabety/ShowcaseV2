@@ -55,7 +55,3 @@ http://localhost:8080/Showcase/Showcase.html
 ```
 
 ---
-
-### 🎮 Gameplay Optimization
-- [ ] **Abstract Object Movement Engine**: Refactor standard positioning metrics across different games into a streamlined, reusable rendering pipeline within the shared `Movable` structure.
-- [ ] **Enhance Input Latency Handling**: Introduce an event processing queue to store high-speed button commands sequentially, preventing overlapping input checks inside tight frames.
