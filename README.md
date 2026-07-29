@@ -6,11 +6,11 @@ An interactive rich-client web application showcasing arcade-style mini-games (S
 
 ## 🛠️ Prerequisites
 
-To run this application locally, you will need:
-*   **Java Development Kit (JDK)**: Version 8 or newer.
-*   **IDE**: Eclipse (Eclipse IDE for Enterprise Java Developers recommended).
-*   **GWT SDK**: Version 2.12.1 installed/linked.
-*   **Application Server**: Apache Tomcat (v9.0+ recommended).
+To run this application locally, you will need to download and install the following software packages:
+*   **Java Development Kit (JDK)**: Version 8 or newer (Download via [Oracle Java Downloads](https://oracle.com) or [OpenJDK](https://openjdk.org)).
+*   **IDE**: Eclipse (The [Eclipse IDE for Enterprise Java Developers](https://eclipse.org) flavor is highly recommended for native deployment wizards).
+*   **GWT SDK**: Version 2.12.1 installed/linked (Download zip directly from the [GWT Project Official Download Page](https://gwtproject.org) or track updates on [GitHub GWT Project Releases](https://github.com)).
+*   **Application Server**: Apache Tomcat (v9.0+ recommended) (Download archives or installer binaries via [Apache Tomcat 9 Software Downloads](https://apache.org)).
 
 ---
 
@@ -55,3 +55,13 @@ http://localhost:8080/Showcase/Showcase.html
 ```
 
 ---
+
+## 📋 Project Roadmap & TO-DOs
+
+### ⚙️ Architecture & Build Management
+- [ ] **Implement Maven/Gradle Build Scripts**: Migrate the build structure to Maven (`pom.xml`) or Gradle to eliminate IDE-specific dependencies and allow automated one-command WAR packaging.
+- [ ] **Add Git Environment Filters**: Introduce a generic root `.gitignore` file to scrub IDE-specific metadata (`.settings/`, `.classpath`) and local compilation dumps (`/gwt-unitCache/`) from public tracking.
+
+### 🎮 Gameplay Optimization
+- [ ] **Abstract Object Movement Engine**: Refactor standard positioning metrics across different games into a streamlined, reusable rendering pipeline within the shared `Movable` structure.
+- [ ] **Enhance Input Latency Handling**: Introduce an event processing queue to store high-speed button commands sequentially, preventing overlapping input checks inside tight frames.
