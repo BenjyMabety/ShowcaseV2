@@ -79,6 +79,10 @@ public class MainLayout extends Composite {
 	SpaceForce sf;
 	Snake snake;
 	Timer t;
+	private int currentSpeed = 1000; // Starts at 1 step per 1000ms
+	private int score = 0;
+	private com.google.gwt.user.client.ui.Label scoreLabel = new com.google.gwt.user.client.ui.Label("Score: 0");
+
 	ArrayList<Asteroid> asteroids = new ArrayList<Asteroid>();
 	Fruit fruit = new Fruit();
 
@@ -99,7 +103,7 @@ public class MainLayout extends Composite {
 		mainPanel.add(fileEditor.getPbFileEditor());
 		mainPanel.add(ball.getPbBall());
 		mainPanel.add(sf.getPbSpaceForce());
-		// mainPanel.add(snake.getPbSnake());
+		mainPanel.add(snake.getPbSnake());
 
 		login.getPbLogin().addClickHandler(new ClickHandler() {
 
@@ -241,6 +245,11 @@ public class MainLayout extends Composite {
 				if (t != null) {
 					t.cancel();
 				}
+				// Add this inside your onClick handler right where the game starts up:
+				score = 0;
+				scoreLabel.setText("Score: 0");
+				currentSpeed = 1000;
+
 				snake.setDirection(Direction.RIGHT);
 				t = new Timer() {
 
@@ -250,6 +259,21 @@ public class MainLayout extends Composite {
 					}
 
 					private void redraw() {
+						// 1. Safely extract current head location strings
+						String headLeftStr = snake.getImage().getElement().getStyle().getLeft().replace("px", "")
+								.trim();
+						String headTopStr = snake.getImage().getElement().getStyle().getTop().replace("px", "").trim();
+
+						// 2. Fallback to 0 if styles are blank at game start to avoid
+						// NumberFormatException
+						double headLeft = headLeftStr.isEmpty() ? 0.0 : Double.valueOf(headLeftStr);
+						double headTop = headTopStr.isEmpty() ? 0.0 : Double.valueOf(headTopStr);
+
+						// 3. Save coordinates as history for the tail children
+						snake.setLastLeftVal(headLeft);
+						snake.setLastTopVal(headTop);
+
+						// 4. Drive head forward into its new layout space
 						if (snake.getDirection().equalsIgnoreCase(Direction.RIGHT)) {
 							snake.moveX(30);
 						} else if (snake.getDirection().equalsIgnoreCase(Direction.LEFT)) {
@@ -258,17 +282,57 @@ public class MainLayout extends Composite {
 							snake.moveY(-30);
 						} else {
 							snake.moveY(30);
-
 						}
+
+						// 5. Command children to cascade over step history checkpoints
 						snake.move();
-						if (snake.eat(fruit)) {
-							spawnFruit(true);
-							if (snake.getChildren().size() == 100) {
-								Window.alert("Game Over");
+
+						// 6. Check Self-Collision (Head hitting any tail segment)
+						// Extract head's post-movement coordinates to compare with children
+						String currentHeadLeft = snake.getImage().getElement().getStyle().getLeft().replace("px", "")
+								.trim();
+						String currentHeadTop = snake.getImage().getElement().getStyle().getTop().replace("px", "")
+								.trim();
+						double hLeft = currentHeadLeft.isEmpty() ? 0.0 : Double.valueOf(currentHeadLeft);
+						double hTop = currentHeadTop.isEmpty() ? 0.0 : Double.valueOf(currentHeadTop);
+
+						for (Snake child : snake.getChildren()) {
+							String childLeftStr = child.getImage().getElement().getStyle().getLeft().replace("px", "")
+									.trim();
+							String childTopStr = child.getImage().getElement().getStyle().getTop().replace("px", "")
+									.trim();
+							double cLeft = childLeftStr.isEmpty() ? 0.0 : Double.valueOf(childLeftStr);
+							double cTop = childTopStr.isEmpty() ? 0.0 : Double.valueOf(childTopStr);
+
+							// If head coordinates perfectly match a tail segment coordinate, end the game
+							if (hLeft == cLeft && hTop == cTop) {
+								t.cancel(); // Stop the game loop timer immediately
+								Window.alert("Game Over! You bit your tail.");
 								snake.reset();
+								return; // Exit the loop and redraw execution early
 							}
 						}
+
+						// 7. Evaluate map food layout flags (Removed the 100 child cap restriction)
+						// Evaluate map food layout flags
+						// Evaluate map food layout flags
+						if (snake.eat(fruit)) {
+							spawnFruit(true);
+
+							// Increment score and refresh the display label text
+							score += 10;
+							scoreLabel.setText("Score: " + score);
+
+							// Double the movement speed by cutting the loop interval time in half
+							if (currentSpeed > 62) {
+								currentSpeed = currentSpeed / 2;
+								t.cancel();
+								t.scheduleRepeating(currentSpeed);
+							}
+						}
+
 					}
+
 				};
 				t.scheduleRepeating(1000);
 				canvasPanel.setVisible(false);
@@ -480,6 +544,16 @@ public class MainLayout extends Composite {
 
 			controlPanel.setCellHorizontalAlignment(hp, HasHorizontalAlignment.ALIGN_CENTER);
 			controlPanel.setCellHorizontalAlignment(snake.getUpButton(), HasHorizontalAlignment.ALIGN_CENTER);
+			// Add this where you set up your control layout configurations
+			scoreLabel.getElement().getStyle().setProperty("textAlign", "center");
+			scoreLabel.getElement().getStyle().setProperty("fontSize", "20px");
+			scoreLabel.getElement().getStyle().setProperty("fontWeight", "bold");
+			scoreLabel.getElement().getStyle().setProperty("marginTop", "15px");
+			scoreLabel.getElement().getStyle().setProperty("fontFamily", "sans-serif");
+			scoreLabel.getElement().getStyle().setProperty("color", "#333");
+
+			// Add the score label right below your arrow button layout panel
+			controlPanel.add(scoreLabel);
 
 		}
 

@@ -47,69 +47,68 @@ public class Snake extends Movable {
 		image = new Image(resources.snake());
 
 		getRightButton().addClickHandler(new ClickHandler() {
-
 			@Override
 			public void onClick(ClickEvent event) {
-				setPreviousDirection(getDirection());
-				DIRECTION_PRESSED = Direction.RIGHT;
-
+				// Block going RIGHT if physically traveling LEFT
+				if (!getDirection().equalsIgnoreCase(Direction.LEFT)) {
+					setPreviousDirection(getDirection());
+					DIRECTION_PRESSED = Direction.RIGHT;
+				}
 			}
 		});
-		getLeftButton().addClickHandler(new ClickHandler() {
 
+		getLeftButton().addClickHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
-				setPreviousDirection(getDirection());
-				DIRECTION_PRESSED = Direction.LEFT;
-
+				// Block going LEFT if physically traveling RIGHT
+				if (!getDirection().equalsIgnoreCase(Direction.RIGHT)) {
+					setPreviousDirection(getDirection());
+					DIRECTION_PRESSED = Direction.LEFT;
+				}
 			}
 		});
 
 		getUpButton().addClickHandler(new ClickHandler() {
-
 			@Override
 			public void onClick(ClickEvent event) {
-				setPreviousDirection(getDirection());
-				DIRECTION_PRESSED = Direction.UP;
-
+				// Block going UP if physically traveling DOWN
+				if (!getDirection().equalsIgnoreCase(Direction.DOWN)) {
+					setPreviousDirection(getDirection());
+					DIRECTION_PRESSED = Direction.UP;
+				}
 			}
 		});
 
 		getDownButton().addClickHandler(new ClickHandler() {
-
 			@Override
 			public void onClick(ClickEvent event) {
-				setPreviousDirection(getDirection());
-				DIRECTION_PRESSED = Direction.DOWN;
-
+				// Block going DOWN if physically traveling UP
+				if (!getDirection().equalsIgnoreCase(Direction.UP)) {
+					setPreviousDirection(getDirection());
+					DIRECTION_PRESSED = Direction.DOWN;
+				}
 			}
 		});
 
 		getPbKeyboard().addKeyUpHandler(new KeyUpHandler() {
-
 			@Override
 			public void onKeyUp(KeyUpEvent event) {
-				if (event.getNativeKeyCode() == KeyCodes.KEY_RIGHT) {
-					setPreviousDirection(getDirection());
+				int keyCode = event.getNativeKeyCode();
+				String currentDir = getDirection();
+
+				if (keyCode == KeyCodes.KEY_RIGHT && !currentDir.equalsIgnoreCase(Direction.LEFT)) {
+					setPreviousDirection(currentDir);
 					DIRECTION_PRESSED = Direction.RIGHT;
-
-				}
-				if (event.getNativeKeyCode() == KeyCodes.KEY_LEFT) {
-					setPreviousDirection(getDirection());
+				} else if (keyCode == KeyCodes.KEY_LEFT && !currentDir.equalsIgnoreCase(Direction.RIGHT)) {
+					setPreviousDirection(currentDir);
 					DIRECTION_PRESSED = Direction.LEFT;
-
-				}
-				if (event.getNativeKeyCode() == KeyCodes.KEY_UP) {
-					setPreviousDirection(getDirection());
+				} else if (keyCode == KeyCodes.KEY_UP && !currentDir.equalsIgnoreCase(Direction.DOWN)) {
+					setPreviousDirection(currentDir);
 					DIRECTION_PRESSED = Direction.UP;
-
-				}
-				if (event.getNativeKeyCode() == KeyCodes.KEY_DOWN) {
-					setPreviousDirection(getDirection());
+				} else if (keyCode == KeyCodes.KEY_DOWN && !currentDir.equalsIgnoreCase(Direction.UP)) {
+					setPreviousDirection(currentDir);
 					DIRECTION_PRESSED = Direction.DOWN;
-
 				}
-
 			}
 		});
 
@@ -231,40 +230,33 @@ public class Snake extends Movable {
 	 * @param fruit
 	 * @return
 	 */
-	public boolean eat(Fruit fruit) {
-		if (getDirection().equalsIgnoreCase(Direction.RIGHT)) {
-			if ((image.getElement().getAbsoluteRight() > fruit.getImage().getElement().getAbsoluteLeft()
-					&& image.getElement().getAbsoluteBottom() > fruit.getImage().getElement().getAbsoluteTop())
-					&& ((image.getElement().getAbsoluteRight() - fruit.getImage().getElement().getAbsoluteLeft() <= 30)
-							&& (image.getElement().getAbsoluteBottom() - fruit.getImage().getAbsoluteTop() <= 60)))
-				return true;
-		} else if (getDirection().equalsIgnoreCase(Direction.LEFT)) {
-			if ((image.getElement().getAbsoluteLeft() < fruit.getImage().getElement().getAbsoluteRight()
-					&& image.getElement().getAbsoluteBottom() > fruit.getImage().getElement().getAbsoluteTop())
-					&& ((image.getElement().getAbsoluteRight() - fruit.getImage().getElement().getAbsoluteLeft() >= -30)
-							&& (image.getElement().getAbsoluteBottom() - fruit.getImage().getAbsoluteTop() <= 60)))
-				return true;
+	public boolean eat(Movable fruit) {
+		// 1. Extract and clean the Snake Head coordinates
+		String headLeftStr = this.getImage().getElement().getStyle().getLeft().replace("px", "").trim();
+		String headTopStr = this.getImage().getElement().getStyle().getTop().replace("px", "").trim();
+		double headX1 = headLeftStr.isEmpty() ? 0.0 : Double.valueOf(headLeftStr);
+		double headY1 = headTopStr.isEmpty() ? 0.0 : Double.valueOf(headTopStr);
 
-		} else if (getDirection().equalsIgnoreCase(Direction.DOWN)) {
-			if ((image.getElement().getAbsoluteBottom() > fruit.getImage().getElement().getAbsoluteTop())
-					&& image.getElement().getAbsoluteBottom() - fruit.getImage().getAbsoluteTop() <= 30) {
-				if ((image.getElement().getAbsoluteRight() > fruit.getImage().getElement().getAbsoluteRight())
-						&& (image.getElement().getAbsoluteLeft() < fruit.getImage().getAbsoluteLeft())) {
-					return true;
-				}
-			}
-		} else {
-			if ((image.getElement().getAbsoluteTop() < fruit.getImage().getElement().getAbsoluteBottom())
-					&& (fruit.getImage().getElement().getAbsoluteBottom()
-							- image.getElement().getAbsoluteTop() <= 30)) {
-				if ((image.getElement().getAbsoluteRight() > fruit.getImage().getElement().getAbsoluteRight())
-						&& (image.getElement().getAbsoluteLeft() < fruit.getImage().getAbsoluteLeft())) {
-					return true;
-				}
-			}
+		// Define Head edges based on its 48x48 px dimension
+		double headX2 = headX1 + 48;
+		double headY2 = headY1 + 48;
 
-		}
-		return false;
+		// 2. Extract and clean the Fruit coordinates
+		String fruitLeftStr = fruit.getImage().getElement().getStyle().getLeft().replace("px", "").trim();
+		String fruitTopStr = fruit.getImage().getElement().getStyle().getTop().replace("px", "").trim();
+		double fruitX1 = fruitLeftStr.isEmpty() ? 0.0 : Double.valueOf(fruitLeftStr);
+		double fruitY1 = fruitTopStr.isEmpty() ? 0.0 : Double.valueOf(fruitTopStr);
+
+		// Define Fruit edges based on its 18x24 px dimension
+		double fruitX2 = fruitX1 + 18;
+		double fruitY2 = fruitY1 + 24;
+
+		// 3. Evaluate 2D Bounding Box Overlap Condition
+		// Returns true if the rectangles overlap on both axes
+		boolean xOverlap = (headX1 < fruitX2) && (headX2 > fruitX1);
+		boolean yOverlap = (headY1 < fruitY2) && (headY2 > fruitY1);
+
+		return xOverlap && yOverlap;
 	}
 
 	/**
@@ -285,32 +277,24 @@ public class Snake extends Movable {
 	 * @param child
 	 */
 	public void addTail(Snake child) {
-
 		Snake lastChild = getLastChild();
-		child.setLastLeft(lastChild.getImage().getElement().getStyle().getLeft().replace("px", ""));
-		child.setLastTop(lastChild.getImage().getElement().getStyle().getTop().replace("px", ""));
 
-		child.getImage().getElement().getStyle().setProperty("left",
-				lastChild.getImage().getElement().getStyle().getLeft());
-		child.getImage().getElement().getStyle().setProperty("top",
-				lastChild.getImage().getElement().getStyle().getTop());
-		String left = lastChild.getImage().getElement().getStyle().getLeft().replace("px", "");
-		String top = lastChild.getImage().getElement().getStyle().getTop().replace("px", "");
+		// Read the current position of the last tail segment
+		String currentLeft = lastChild.getImage().getElement().getStyle().getLeft();
+		String currentTop = lastChild.getImage().getElement().getStyle().getTop();
 
+		// If it's the very first spawn, place it right at the current segment position
 		child.getImage().getElement().getStyle().setPosition(Position.ABSOLUTE);
-		// Child must follow parent
-		// Up top of this method, get the index of the last entry and the child must
-		// follow the last co ordinates of the parent.
+		child.getImage().getElement().getStyle().setProperty("left", currentLeft);
+		child.getImage().getElement().getStyle().setProperty("top", currentTop);
 
-		// print out lastchild last co ordinates for every child and snake's last co
-		// ordinates
-		// confirm all the children are spawned to follow snake
-		// they should not
-		child.setLastLeftVal((Double.valueOf(left)));
-		child.setLastTopVal(Double.valueOf(top));
+		// Initialize tracking values clean of text noise
+		double leftVal = Double.valueOf(currentLeft.replace("px", ""));
+		double topVal = Double.valueOf(currentTop.replace("px", ""));
+		child.setLastLeftVal(leftVal);
+		child.setLastTopVal(topVal);
 
 		children.add(child);
-
 	}
 
 	/**
@@ -381,27 +365,23 @@ public class Snake extends Movable {
 	}
 
 	public void move() {
+		// Cascade positions from back to front
+		for (int i = children.size() - 1; i >= 0; i--) {
+			Snake currentChild = children.get(i);
+			Movable parentNode = (i == 0) ? this : children.get(i - 1);
 
-		for (Snake child : children) {
-			if (getDirection().equalsIgnoreCase(Direction.LEFT) || getDirection().equalsIgnoreCase(Direction.RIGHT)) {
-				child.getImage().getElement().getStyle().setPosition(Position.ABSOLUTE);
-				child.getImage().getElement().getStyle().setLeft(getParent(child).getLastLeftVal() - 35, Unit.PX);
-				child.getImage().getElement().getStyle().setTop(getParent(child).getLastTopVal(), Unit.PX);
+			// Grab parentNode's historical coordinate location before its current update
+			double targetLeft = parentNode.getLastLeftVal();
+			double targetTop = parentNode.getLastTopVal();
 
-				child.setLastLeftVal(getParent(child).getLastLeftVal() - 35);
-				child.setLastTopVal(getParent(child).getLastTopVal());
-			} else {
+			// Apply historical parent values directly to the child styles
+			currentChild.getImage().getElement().getStyle().setLeft(targetLeft, Unit.PX);
+			currentChild.getImage().getElement().getStyle().setTop(targetTop, Unit.PX);
 
-				child.getImage().getElement().getStyle().setPosition(Position.ABSOLUTE);
-				child.getImage().getElement().getStyle().setLeft(getParent(child).getLastLeftVal(), Unit.PX);
-				child.getImage().getElement().getStyle().setTop(getParent(child).getLastTopVal() - 35, Unit.PX);
-
-				child.setLastLeftVal(getParent(child).getLastLeftVal());
-				child.setLastTopVal(getParent(child).getLastTopVal() - 35);
-
-			}
+			// Store current coordinates as history for the next downstream child
+			currentChild.setLastLeftVal(targetLeft);
+			currentChild.setLastTopVal(targetTop);
 		}
-
 	}
 
 	/**
