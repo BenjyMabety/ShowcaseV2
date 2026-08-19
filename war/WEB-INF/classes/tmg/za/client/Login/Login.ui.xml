@@ -19,6 +19,7 @@
         <td> 
         	<g:TextBox ui:field="passField"></g:TextBox>
         </td>
+        </tr>
         <tr>
         <td align = "left">
         	<g:Button ui:field="closeButton"></g:Button>
