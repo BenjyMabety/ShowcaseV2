@@ -1,6 +1,8 @@
 package tmg.za.client;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.dom.client.Style.Position;
@@ -18,6 +20,7 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HasHorizontalAlignment;
 import com.google.gwt.user.client.ui.HorizontalPanel;
+import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.TextArea;
 import com.google.gwt.user.client.ui.TextBox;
@@ -29,6 +32,8 @@ import tmg.za.client.FileEditor.FileService;
 import tmg.za.client.FileEditor.FileServiceAsync;
 import tmg.za.client.FileEditor.FileUploader;
 import tmg.za.client.Login.Login;
+import tmg.za.client.Pacman.Ghost;
+import tmg.za.client.Pacman.Pacman;
 import tmg.za.client.Resources.Resources;
 import tmg.za.client.Snake.Fruit;
 import tmg.za.client.Snake.Snake;
@@ -53,6 +58,22 @@ public class MainLayout extends Composite {
 	public static final String BALL = "BALL";
 	public static final String SPACE = "SPACE";
 	public static final String SNAKE = "SNAKE";
+	public static final String PACMAN = "PACMAN";
+
+	// Load MAP_1 dynamically from Map_1.txt in Resources
+	public String[] MAP_1 = resources.map1().getText().split("\\r?\\n");
+
+	private Image[][] fruitGrid;
+	private Image[][] riceGrid;
+	private final List<Widget> mapWidgets = new ArrayList<>();
+	private int riceChompCounter = 0;
+	private int totalRiceRemaining = 0;
+	private boolean isGameFrozen = false;
+	private int timerInterval = 600; // Base Pacman move timer in ms
+
+	private final List<Ghost> activeGhosts = new ArrayList<>();
+	private Timer ghostDespawnTimer;
+	private boolean isWaitingForInput = true;
 
 	@UiField
 	VerticalPanel mainPanel;
@@ -78,6 +99,9 @@ public class MainLayout extends Composite {
 	Ball ball;
 	SpaceForce sf;
 	Snake snake;
+	Pacman pacMan;
+	// Track the active image widget on the canvas
+	private Image currentPacmanImage = null;
 	Timer t;
 	private int currentSpeed = 1000; // Starts at 1 step per 1000ms
 	private int score = 0;
@@ -97,6 +121,7 @@ public class MainLayout extends Composite {
 		ball = new Ball();
 		sf = new SpaceForce();
 		snake = new Snake();
+		pacMan = new Pacman();
 
 		mainPanel.add(login.getPbLogin());
 		mainPanel.add(gg.getPbGuess());
@@ -104,6 +129,7 @@ public class MainLayout extends Composite {
 		mainPanel.add(ball.getPbBall());
 		mainPanel.add(sf.getPbSpaceForce());
 		mainPanel.add(snake.getPbSnake());
+		mainPanel.add(pacMan.getPbPacman());
 
 		login.getPbLogin().addClickHandler(new ClickHandler() {
 
@@ -123,6 +149,8 @@ public class MainLayout extends Composite {
 				mainCanvas.remove(sf.getImage());
 				mainCanvas.remove(snake.getImage());
 				mainCanvas.remove(fruit.getImage());
+				mainCanvas.remove(pacMan.getImage());
+				clearPacmanAssets();
 				clearAsteroids();
 				// ball.setLive(false);
 				controlPanel.setVisible(false);
@@ -147,6 +175,8 @@ public class MainLayout extends Composite {
 				mainCanvas.remove(sf.getImage());
 				mainCanvas.remove(snake.getImage());
 				mainCanvas.remove(fruit.getImage());
+				mainCanvas.remove(pacMan.getImage());
+				clearPacmanAssets();
 				clearAsteroids();
 				// ball.setLive(false);
 				controlPanel.setVisible(false);
@@ -170,6 +200,8 @@ public class MainLayout extends Composite {
 				mainCanvas.remove(sf.getImage());
 				mainCanvas.remove(snake.getImage());
 				mainCanvas.remove(fruit.getImage());
+				mainCanvas.remove(pacMan.getImage());
+				clearPacmanAssets();
 				clearAsteroids();
 				setEnabled(true, true);
 				mainCanvas.getParent().getElement().setAttribute("style",
@@ -187,10 +219,12 @@ public class MainLayout extends Composite {
 				mainCanvas.remove(ball.getImage());
 				mainCanvas.remove(snake.getImage());
 				mainCanvas.remove(fruit.getImage());
+				mainCanvas.remove(pacMan.getImage());
 				// ball.setLive(false);
 				setEnabled(true, false);
 				mainCanvas.add(sf.getImage().asWidget());
 				renderAsteroids();
+				clearPacmanAssets();
 				sf.setDistance(mainCanvas.getAbsoluteLeft());
 
 				// left:735px;top:0px;
@@ -358,8 +392,10 @@ public class MainLayout extends Composite {
 				// ball.setLive(true);
 				mainCanvas.remove(sf.getImage());
 				mainCanvas.remove(ball.getImage());
+				mainCanvas.remove(pacMan.getImage());
 				mainCanvas.add(spawnFruit(false));
 				clearAsteroids();
+				clearPacmanAssets();
 				setEnabled(false, true);
 				mainCanvas.getParent().getElement().setAttribute("style",
 						"position: absolute; inset: 0px;background-position:center;background-repeat:no-repeat");
@@ -387,8 +423,67 @@ public class MainLayout extends Composite {
 				return fruit.getImage();
 			}
 		});
+
+		pacMan.getPbPacman().addClickHandler(new ClickHandler() {
+
+			@Override
+			public void onClick(ClickEvent event) {
+				if (t != null) {
+					t.cancel();
+				}
+				despawnGhosts();
+
+				canvasPanel.setVisible(false);
+				buttonPanel.setVisible(false);
+
+				// Clear assets from other game modes
+				mainCanvas.remove(sf.getImage());
+				mainCanvas.remove(snake.getImage());
+				mainCanvas.remove(fruit.getImage());
+				mainCanvas.remove(ball.getImage());
+				clearAsteroids();
+
+				// Perform full game reset (Score = 0, reloads Map_1.txt, positions Pacman)
+				resetPacmanGame(true);
+
+				setupControlPanel(PACMAN);
+				controlPanel.setVisible(true);
+				setEnabled(false, true);
+				mainCanvas.getParent().getElement().setAttribute("style",
+						"position: absolute; inset: 0px;background-position:center;background-repeat:no-repeat");
+			}
+		});
 		setUpEditorButtonHandlers();
 
+	}
+
+	private void redraw() {
+		if (isGameFrozen)
+			return;
+
+		Image activeFace = pacMan.getImage();
+		if (currentPacmanImage != activeFace) {
+			mainCanvas.remove(currentPacmanImage);
+			currentPacmanImage = activeFace;
+			mainCanvas.add(currentPacmanImage);
+		}
+
+		String dir = pacMan.getDirection();
+
+		if (canMove(pacMan.getRightStep(), pacMan.getTopStep(), dir)) {
+			if (Direction.RIGHT.equalsIgnoreCase(dir)) {
+				pacMan.moveX(30);
+			} else if (Direction.LEFT.equalsIgnoreCase(dir)) {
+				pacMan.moveX(-30);
+			} else if (Direction.UP.equalsIgnoreCase(dir)) {
+				pacMan.moveY(-30);
+			} else if (Direction.DOWN.equalsIgnoreCase(dir)) {
+				pacMan.moveY(30);
+			}
+
+			checkItemCollision();
+			checkGhostCollision();
+		}
 	}
 
 	/**
@@ -409,6 +504,35 @@ public class MainLayout extends Composite {
 			ast.getImage().removeFromParent();
 		}
 		asteroids.clear();
+	}
+
+	public void clearPacmanAssets() {
+
+		// 2. Clear all active ghosts and cancel despawn timer
+		despawnGhosts();
+
+		// 3. Remove active Pacman sprite
+		if (currentPacmanImage != null) {
+			mainCanvas.remove(currentPacmanImage);
+			currentPacmanImage = null;
+		}
+
+		// 4. Remove all brick, rice, and fruit map widgets
+		if (mapWidgets != null) {
+			for (Widget w : mapWidgets) {
+				mainCanvas.remove(w);
+			}
+			mapWidgets.clear();
+		}
+
+		// 5. Clear grid array references
+		riceGrid = null;
+		fruitGrid = null;
+
+		// 6. Reset state variables
+		isGameFrozen = false;
+		riceChompCounter = 0;
+		totalRiceRemaining = 0;
 	}
 
 	/**
@@ -457,6 +581,49 @@ public class MainLayout extends Composite {
 		renderAsteroids();
 		sf.setDistance(mainCanvas.getAbsoluteLeft());
 
+	}
+
+	/**
+	 * Resets Pacman to grid[1, 1] facing RIGHT awaiting input.
+	 * 
+	 * @param fullReset If true, resets score to 0 and reloads original Map_1.txt.
+	 *                  If false, preserves current score and uses existing MAP_1
+	 *                  array.
+	 */
+	private void resetPacmanGame(boolean fullReset) {
+		if (t != null) {
+			t.cancel();
+			t = null;
+		}
+
+		despawnGhosts();
+		isGameFrozen = false;
+		isWaitingForInput = true;
+		riceChompCounter = 0;
+		timerInterval = 600;
+
+		if (fullReset) {
+			score = 0;
+			scoreLabel.setText("Score: " + score);
+			// Reload original stage 1 layout from file resource
+			MAP_1 = resources.map1().getText().split("\\r?\\n");
+		}
+
+		// Re-render map tiles (uses active MAP_1 layout)
+		renderMap();
+
+		// Position Pacman at grid[1, 1] facing RIGHT
+		pacMan.setRightStep(30);
+		pacMan.setTopStep(30);
+		pacMan.setDirection(Direction.RIGHT);
+
+		// Refresh canvas image reference
+		if (currentPacmanImage != null) {
+			mainCanvas.remove(currentPacmanImage);
+		}
+		currentPacmanImage = pacMan.getImage();
+		mainCanvas.add(currentPacmanImage);
+		pacMan.updatePosition();
 	}
 
 	/**
@@ -546,7 +713,7 @@ public class MainLayout extends Composite {
 			controlPanel.setCellHorizontalAlignment(hp, HasHorizontalAlignment.ALIGN_CENTER);
 			controlPanel.setCellHorizontalAlignment(sf.getUpButton(), HasHorizontalAlignment.ALIGN_CENTER);
 
-		} else {
+		} else if (mode.equalsIgnoreCase(SNAKE)) {
 
 			controlPanel.add(snake.getUpButton());
 			HorizontalPanel hp = new HorizontalPanel();
@@ -569,8 +736,478 @@ public class MainLayout extends Composite {
 			// Add the score label right below your arrow button layout panel
 			controlPanel.add(scoreLabel);
 
+		} else {
+			int force = physics.getForce(pacMan.getMass(), false, false);
+
+			// UP Button
+			pacMan.getUpButton().addClickHandler(new ClickHandler() {
+				@Override
+				public void onClick(ClickEvent event) {
+					changePacmanDirection(Direction.UP);
+				}
+			});
+			controlPanel.add(pacMan.getUpButton());
+
+			HorizontalPanel hp = new HorizontalPanel();
+
+			// LEFT Button
+			pacMan.getLeftButton().addClickHandler(new ClickHandler() {
+				@Override
+				public void onClick(ClickEvent event) {
+					changePacmanDirection(Direction.LEFT);
+				}
+			});
+			hp.add(pacMan.getLeftButton());
+
+			// DOWN Button
+			pacMan.getDownButton().addClickHandler(new ClickHandler() {
+				@Override
+				public void onClick(ClickEvent event) {
+					changePacmanDirection(Direction.DOWN);
+				}
+			});
+			hp.add(pacMan.getDownButton());
+
+			// RIGHT Button
+			pacMan.getRightButton().addClickHandler(new ClickHandler() {
+				@Override
+				public void onClick(ClickEvent event) {
+					changePacmanDirection(Direction.RIGHT);
+				}
+			});
+			hp.add(pacMan.getRightButton());
+
+			controlPanel.add(hp);
+			controlPanel.add(pacMan.getPbKeyboard());
+
+			// Keyboard Handler
+			pacMan.getPbKeyboard().addKeyUpHandler(new KeyUpHandler() {
+				@Override
+				public void onKeyUp(KeyUpEvent event) {
+					int keyCode = event.getNativeKeyCode();
+
+					if (keyCode == KeyCodes.KEY_RIGHT) {
+						changePacmanDirection(Direction.RIGHT);
+					} else if (keyCode == KeyCodes.KEY_LEFT) {
+						changePacmanDirection(Direction.LEFT);
+					} else if (keyCode == KeyCodes.KEY_UP) {
+						changePacmanDirection(Direction.UP);
+					} else if (keyCode == KeyCodes.KEY_DOWN) {
+						changePacmanDirection(Direction.DOWN);
+					}
+				}
+			});
+
+			controlPanel.setCellHorizontalAlignment(hp, HasHorizontalAlignment.ALIGN_CENTER);
+			controlPanel.setCellHorizontalAlignment(pacMan.getUpButton(), HasHorizontalAlignment.ALIGN_CENTER);
+
+			// Score Label Configuration for Pacman Mode
+			scoreLabel.getElement().getStyle().setProperty("textAlign", "center");
+			scoreLabel.getElement().getStyle().setProperty("fontSize", "20px");
+			scoreLabel.getElement().getStyle().setProperty("fontWeight", "bold");
+			scoreLabel.getElement().getStyle().setProperty("marginTop", "15px");
+			scoreLabel.getElement().getStyle().setProperty("fontFamily", "sans-serif");
+			scoreLabel.getElement().getStyle().setProperty("color", "#333");
+
+			controlPanel.add(scoreLabel);
 		}
 
+	}
+
+	private void changePacmanDirection(String newDirection) {
+		if (isGameFrozen)
+			return;
+
+		// Start movement loop on first input key/button press after game reset
+		if (isWaitingForInput) {
+			isWaitingForInput = false;
+			startPacmanTimer();
+		}
+
+		// Ignore if already moving in this direction
+		if (newDirection.equalsIgnoreCase(pacMan.getDirection())) {
+			return;
+		}
+
+		// Ignore turn if target path is blocked by brick
+		if (!canMove(pacMan.getRightStep(), pacMan.getTopStep(), newDirection)) {
+			return;
+		}
+
+		Image oldImage = pacMan.getImage();
+		pacMan.setDirection(newDirection);
+		Image newImage = pacMan.getImage();
+
+		if (oldImage != newImage && currentPacmanImage != newImage) {
+			mainCanvas.remove(currentPacmanImage);
+			currentPacmanImage = newImage;
+			mainCanvas.add(currentPacmanImage);
+			pacMan.updatePosition();
+		}
+	}
+
+	private void startPacmanTimer() {
+		if (t != null) {
+			t.cancel();
+		}
+		t = new Timer() {
+			@Override
+			public void run() {
+				redraw();
+			}
+		};
+		t.scheduleRepeating(timerInterval);
+	}
+
+	public void renderMap() {
+		for (Widget w : mapWidgets) {
+			mainCanvas.remove(w);
+		}
+		mapWidgets.clear();
+
+		int rows = MAP_1.length;
+		int cols = MAP_1[0].length();
+		riceGrid = new Image[rows][cols];
+		fruitGrid = new Image[rows][cols];
+		totalRiceRemaining = 0;
+
+		int tileSize = 30;
+		int brickSize = 28;
+		int brickOffset = (tileSize - brickSize) / 2;
+		int riceSize = 8;
+		int riceOffset = (tileSize - riceSize) / 2;
+		int fruitSize = 20;
+		int fruitOffset = (tileSize - fruitSize) / 2;
+
+		for (int r = 0; r < rows; r++) {
+			String line = MAP_1[r];
+			for (int c = 0; c < line.length(); c++) {
+				char cell = line.charAt(c);
+
+				if (cell == '-') {
+					Image brick = new Image(resources.brick());
+					brick.setPixelSize(brickSize, brickSize);
+					brick.getElement().getStyle().setPosition(Position.ABSOLUTE);
+					brick.getElement().getStyle().setLeft((c * tileSize) + brickOffset, Unit.PX);
+					brick.getElement().getStyle().setTop((r * tileSize) + brickOffset, Unit.PX);
+
+					mainCanvas.add(brick);
+					mapWidgets.add(brick);
+				} else if (cell == '.') {
+					Image rice = new Image(resources.rice());
+					rice.setPixelSize(riceSize, riceSize);
+					rice.getElement().getStyle().setPosition(Position.ABSOLUTE);
+					rice.getElement().getStyle().setLeft((c * tileSize) + riceOffset, Unit.PX);
+					rice.getElement().getStyle().setTop((r * tileSize) + riceOffset, Unit.PX);
+
+					mainCanvas.add(rice);
+					mapWidgets.add(rice);
+					riceGrid[r][c] = rice;
+					totalRiceRemaining++;
+				} else if (cell == '*') {
+					Image fruitItem = new Image(resources.fruit());
+					fruitItem.setPixelSize(fruitSize, fruitSize);
+					fruitItem.getElement().getStyle().setPosition(Position.ABSOLUTE);
+					fruitItem.getElement().getStyle().setLeft((c * tileSize) + fruitOffset, Unit.PX);
+					fruitItem.getElement().getStyle().setTop((r * tileSize) + fruitOffset, Unit.PX);
+
+					mainCanvas.add(fruitItem);
+					mapWidgets.add(fruitItem);
+					fruitGrid[r][c] = fruitItem;
+				}
+			}
+		}
+	}
+
+	private void checkItemCollision() {
+		int col = Math.round((float) pacMan.getRightStep() / 30);
+		int row = Math.round((float) pacMan.getTopStep() / 30);
+
+		if (row >= 0 && row < MAP_1.length && col >= 0 && col < MAP_1[0].length()) {
+			// 1. Process Rice Collision
+			Image riceTile = riceGrid[row][col];
+			if (riceTile != null) {
+				mainCanvas.remove(riceTile);
+				mapWidgets.remove(riceTile);
+				riceGrid[row][col] = null;
+
+				score += 10;
+				scoreLabel.setText("Score: " + score);
+				pacMan.triggerChompAnimation(mainCanvas);
+
+				totalRiceRemaining--;
+				riceChompCounter++;
+
+				// Win Condition: All rice cleared -> Freeze Pacman
+				// Win Condition: All rice cleared -> Generate next procedural level
+				// Win Condition: All rice cleared -> Generate next procedural map & preserve
+				// score
+				if (totalRiceRemaining <= 0) {
+					if (t != null) {
+						t.cancel();
+					}
+					despawnGhosts();
+
+					com.google.gwt.user.client.Window.alert("Stage Cleared! Loading next map...");
+
+					generateNextMap();
+					resetPacmanGame(false); // Keeps score, renders procedural map
+					return;
+				}
+
+				// Spawn ghosts after every 10 rice chomps
+				if (riceChompCounter > 0 && riceChompCounter % 10 == 0) {
+					spawnGhosts();
+				}
+				return;
+			}
+
+			// 2. Process Fruit Collision
+			Image fruitTile = fruitGrid[row][col];
+			if (fruitTile != null) {
+				mainCanvas.remove(fruitTile);
+				mapWidgets.remove(fruitTile);
+				fruitGrid[row][col] = null;
+
+				score += 50;
+				scoreLabel.setText("Score: " + score);
+				pacMan.triggerChompAnimation(mainCanvas);
+
+				// Increase Pacman speed by reducing timer interval (floor limit at 150ms)
+				if (timerInterval > 50) {
+					timerInterval -= 125;
+					if (t != null) {
+						t.cancel();
+						t.scheduleRepeating(timerInterval);
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * Spawns all 4 ghost types at unique, random non-brick locations.
+	 */
+	private void spawnGhosts() {
+		despawnGhosts(); // Clear any active ghosts before spawning new ones
+
+		List<int[]> validCells = new ArrayList<>();
+		int rows = MAP_1.length;
+		int cols = MAP_1[0].length();
+
+		int pacCol = Math.round((float) pacMan.getRightStep() / 30);
+		int pacRow = Math.round((float) pacMan.getTopStep() / 30);
+
+		for (int r = 0; r < rows; r++) {
+			for (int c = 0; c < cols; c++) {
+				if (MAP_1[r].charAt(c) != '-') {
+					// Avoid spawning directly on Pacman
+					if (r != pacRow || c != pacCol) {
+						validCells.add(new int[] { r, c });
+					}
+				}
+			}
+		}
+
+		if (validCells.size() < 4)
+			return;
+
+		// Pick 4 unique locations
+		Collections.shuffle(validCells);
+		Ghost.GhostType[] types = Ghost.GhostType.values();
+
+		for (int i = 0; i < 4; i++) {
+			int[] pos = validCells.get(i);
+			Ghost ghost = new Ghost(types[i]);
+			ghost.setRightStep(pos[1] * 30);
+			ghost.setTopStep(pos[0] * 30);
+
+			mainCanvas.add(ghost.getImage());
+			ghost.updatePosition();
+			activeGhosts.add(ghost);
+		}
+
+		// Despawn ghosts after 5 seconds
+		ghostDespawnTimer = new Timer() {
+			@Override
+			public void run() {
+				despawnGhosts();
+			}
+		};
+		ghostDespawnTimer.schedule(5000);
+	}
+
+	private void despawnGhosts() {
+		if (ghostDespawnTimer != null) {
+			ghostDespawnTimer.cancel();
+		}
+		for (Ghost g : activeGhosts) {
+			mainCanvas.remove(g.getImage());
+		}
+		activeGhosts.clear();
+	}
+
+	private void checkGhostCollision() {
+		int pacCol = Math.round((float) pacMan.getRightStep() / 30);
+		int pacRow = Math.round((float) pacMan.getTopStep() / 30);
+
+		for (Ghost g : activeGhosts) {
+			int ghostCol = Math.round((float) g.getRightStep() / 30);
+			int ghostRow = Math.round((float) g.getTopStep() / 30);
+
+			if (pacCol == ghostCol && pacRow == ghostRow) {
+				com.google.gwt.user.client.Window.alert("Game Over! Pacman was caught by a ghost.");
+				resetPacmanGame(true); // Full reset: score = 0, reloads Map_1.txt
+				return;
+			}
+		}
+	}
+
+	/**
+	 * Checks if moving 1 grid step in 'dir' from the current position hits a brick
+	 * ('-').
+	 */
+	public boolean canMove(int currentRightStep, int currentTopStep, String dir) {
+		if (dir == null || dir.isEmpty()) {
+			return false;
+		}
+
+		int col = currentRightStep / 30;
+		int row = currentTopStep / 30;
+
+		int targetCol = col;
+		int targetRow = row;
+
+		if (Direction.RIGHT.equalsIgnoreCase(dir)) {
+			targetCol++;
+		} else if (Direction.LEFT.equalsIgnoreCase(dir)) {
+			targetCol--;
+		} else if (Direction.UP.equalsIgnoreCase(dir)) {
+			targetRow--;
+		} else if (Direction.DOWN.equalsIgnoreCase(dir)) {
+			targetRow++;
+		}
+
+		int maxRows = MAP_1.length;
+		int maxCols = MAP_1[0].length();
+
+		// Teleport wrapping across grid boundaries
+		if (targetCol < 0) {
+			targetCol = maxCols - 1;
+		} else if (targetCol >= maxCols) {
+			targetCol = 0;
+		}
+
+		if (targetRow < 0) {
+			targetRow = maxRows - 1;
+		} else if (targetRow >= maxRows) {
+			targetRow = 0;
+		}
+
+		char cell = MAP_1[targetRow].charAt(targetCol);
+
+		// Return true only if target cell is NOT a brick
+		return cell != '-';
+	}
+
+	/**
+	 * Generates a procedural 13x27 map featuring 4-way symmetry (left-right &
+	 * top-bottom) with matching portal entry points on opposite edges.
+	 */
+	public void generateNextMap() {
+		int rows = 13;
+		int cols = 27;
+		char[][] grid = new char[rows][cols];
+
+		// 1. Fill entire grid with rice path '.'
+		for (int r = 0; r < rows; r++) {
+			for (int c = 0; c < cols; c++) {
+				grid[r][c] = '.';
+			}
+		}
+
+		// 2. Set Outer Perimeter Brick Walls '-'
+		for (int c = 0; c < cols; c++) {
+			grid[0][c] = '-';
+			grid[rows - 1][c] = '-';
+		}
+		for (int r = 0; r < rows; r++) {
+			grid[r][0] = '-';
+			grid[r][cols - 1] = '-';
+		}
+
+		// 3. Define Matching Edge Portals ('0') on Opposite Axes
+		// Top and Bottom center portal pair
+		grid[0][13] = '0';
+		grid[rows - 1][13] = '0';
+
+		// Left and Right side portal pairs (rows 1, 5, 7, 11)
+		int[] sidePortalRows = { 1, 5, 7, 11 };
+		for (int r : sidePortalRows) {
+			grid[r][0] = '0';
+			grid[r][cols - 1] = '0';
+		}
+
+		// 4. Procedurally Generate Top-Left Quadrant Brick Layout
+		int midRow = rows / 2; // 6
+		int midCol = cols / 2; // 13
+
+		for (int r = 2; r <= midRow - 1; r += 2) {
+			for (int c = 2; c <= midCol - 2; c += 3) {
+				if (Math.random() > 0.25) {
+					grid[r][c] = '-';
+					grid[r][c + 1] = '-';
+				}
+			}
+		}
+
+		// Center divider blocks (top half)
+		if (Math.random() > 0.4) {
+			grid[2][13] = '-';
+			grid[3][13] = '-';
+			grid[4][13] = '-';
+		}
+
+		// 5. Apply 4-Way Symmetrical Mirroring Across Center Axes
+		for (int r = 0; r <= midRow; r++) {
+			for (int c = 0; c <= midCol; c++) {
+				char tile = grid[r][c];
+				if (tile == '0')
+					continue; // Preserve outer portals
+
+				// Mirror Horizontally
+				grid[r][cols - 1 - c] = tile;
+				// Mirror Vertically
+				grid[rows - 1 - r][c] = tile;
+				// Mirror Quadrant Diagonal
+				grid[rows - 1 - r][cols - 1 - c] = tile;
+			}
+		}
+
+		// 6. Ensure Portals and Spawn Points remain clear
+		grid[0][13] = '0';
+		grid[rows - 1][13] = '0';
+		for (int r : sidePortalRows) {
+			grid[r][0] = '0';
+			grid[r][cols - 1] = '0';
+		}
+
+		// Clear Pacman spawn [1,1] and corners
+		grid[1][1] = '.';
+		grid[1][2] = '.';
+		grid[2][1] = '.';
+
+		// 7. Symmetrical Fruit Placement (*)
+		grid[3][1] = '*';
+		grid[3][cols - 2] = '*';
+		grid[rows - 4][1] = '*';
+		grid[rows - 4][cols - 2] = '*';
+
+		// 8. Convert 2D char array back to MAP_1 String array
+		MAP_1 = new String[rows];
+		for (int r = 0; r < rows; r++) {
+			MAP_1[r] = new String(grid[r]);
+		}
 	}
 
 	/**
