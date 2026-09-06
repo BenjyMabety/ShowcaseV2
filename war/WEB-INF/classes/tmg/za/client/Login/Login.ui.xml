@@ -11,6 +11,7 @@
         <td colspan="2" style="font-weight:bold;">Login</td>        
       </tr>
       <tr>
+      	<tr>
         <td>
         	<g:TextBox ui:field="nameField"> </g:TextBox>
         </td>
