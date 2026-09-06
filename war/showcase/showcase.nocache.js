@@ -1,65 +1,26 @@
-/*
- * Copyright 2014 Google Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not
- * use this file except in compliance with the License. You may obtain a copy of
- * the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under
- * the License.
- */
-
-/**
- * This startup script is used when we run superdevmode from an app server.
- */
-(function($wnd, $doc){
-  // Compute some codeserver urls so as the user does not need bookmarklets
-  var hostName = $wnd.location.hostname;
-  var serverUrl = 'http://' + hostName + ':9876';
-  var module = 'showcase';
-  var nocacheUrl = serverUrl + '/recompile-requester/' + module;
-
-  // Insert the superdevmode nocache script in the first position of the head
-  var devModeScript = $doc.createElement('script');
-  devModeScript.src = nocacheUrl;
-
-  // Everybody except IE8 does fire an error event
-  // This means that we do not detect a non running SDM with IE8.
-  if (devModeScript.addEventListener) {
-    var callback = function() {
-      // Don't show the confirmation dialogue twice (multimodule)
-      if (!$wnd.__gwt__sdm__confirmed &&
-           (!$wnd.__gwt_sdm__recompiler || !$wnd.__gwt_sdm__recompiler.loaded)) {
-        $wnd.__gwt__sdm__confirmed = true;
-        if ($wnd.confirm(
-            "Couldn't load " +  module + " from Super Dev Mode\n" +
-            "server at " + serverUrl + ".\n" +
-            "Please make sure this server is ready.\n" +
-            "Do you want to try again?")) {
-          $wnd.location.reload();
-        }
-      }
-    };
-    devModeScript.addEventListener("error", callback, true);
-  }
-
-  var injectScriptTag = function(){
-    $doc.head.insertBefore(devModeScript, $doc.head.firstElementChild || $doc.head.children[0]);
-  };
-
-  if (/loaded|complete/.test($doc.readyState)) {
-    injectScriptTag();
-  } else {
-    //defer app script insertion until the body is ready
-    if($wnd.addEventListener){
-      $wnd.addEventListener('load', injectScriptTag, false);
-    } else{
-      $wnd.attachEvent('onload', injectScriptTag);
-    }
-  }
-})(window, document);
+function showcase(){var H='bootstrap',I='begin',J='gwt.codesvr.showcase=',K='gwt.codesvr=',L='showcase',M='startup',N='DUMMY',O=0,P=1,Q='iframe',R='position:absolute; width:0; height:0; border:none; left: -1000px;',S=' top: -1000px;',T='Chrome',U='CSS1Compat',V='<!doctype html>',W='',X='<html><head><\/head><body><\/body><\/html>',Y='undefined',Z='readystatechange',$=10,_='script',ab='moduleStartup',bb='moduleRequested',cb='Failed to load ',db='head',eb='javascript',fb='meta',gb='name',hb='showcase::',ib='::',jb='gwt:property',kb='content',lb='=',mb='gwt:onPropertyErrorFn',nb='Bad handler "',ob='" for "gwt:onPropertyErrorFn"',pb='gwt:onLoadErrorFn',qb='" for "gwt:onLoadErrorFn"',rb='#',sb='?',tb='/',ub='img',vb='clear.cache.gif',wb='baseUrl',xb='showcase.nocache.js',yb='base',zb='//',Ab='user.agent',Bb='webkit',Cb='safari',Db='gecko',Eb=11,Fb='gecko1_8',Gb='selectingPermutation',Hb='showcase.devmode.js',Ib='47E7554717FC1C9C8B88FE93342AD470',Jb='F7C0595690B5DE802EB7E62F85237C0A',Kb=':',Lb='.cache.js',Mb='link',Nb='rel',Ob='stylesheet',Pb='href',Qb='loadExternalRefs',Rb='gwt/clean/clean.css',Sb='end';var n=window;var o=document;q(H,I);function p(){var a=n.location.search;return a.indexOf(J)!=-1||a.indexOf(K)!=-1}
+function q(a,b){if(n.__gwtStatsEvent){n.__gwtStatsEvent({moduleName:L,sessionId:n.__gwtStatsSessionId,subSystem:M,evtGroup:a,millis:(new Date).getTime(),type:b})}}
+showcase.__sendStats=q;showcase.__moduleName=L;showcase.__errFn=null;showcase.__moduleBase=N;showcase.__softPermutationId=O;showcase.__computePropValue=null;showcase.__getPropMap=null;showcase.__installRunAsyncCode=function(){};showcase.__gwtStartLoadingFragment=function(){return null};showcase.__gwt_isKnownPropertyValue=function(){return false};showcase.__gwt_getMetaProperty=function(){return null};var r=null;var s=n.__gwt_activeModules=n.__gwt_activeModules||{};s[L]={moduleName:L};showcase.__moduleStartupDone=function(e){var f=s[L].bindings;s[L].bindings=function(){var a=f?f():{};var b=e[showcase.__softPermutationId];for(var c=O;c<b.length;c++){var d=b[c];a[d[O]]=d[P]}return a}};var t;function u(){v();return t}
+function v(){if(t){return}var a=o.createElement(Q);a.id=L;a.style.cssText=R+S;a.tabIndex=-1;o.body.appendChild(a);t=a.contentWindow.document;if(navigator.userAgent.indexOf(T)==-1){t.open();var b=document.compatMode==U?V:W;t.write(b+X);t.close()}}
+function w(i){function j(a){function b(){if(typeof o.readyState==Y){return typeof o.body!=Y&&o.body!=null}return /loaded|complete/.test(o.readyState)}
+var c=b();if(c){a();return}function d(){if(!c){if(!b()){return}c=true;a();if(o.removeEventListener){o.removeEventListener(Z,d,false)}if(e){clearInterval(e)}}}
+if(o.addEventListener){o.addEventListener(Z,d,false)}var e=setInterval(function(){d()},$)}
+function k(c){function d(a,b){a.removeChild(b)}
+var e=u();var f=e.body;var g;if(navigator.userAgent.indexOf(T)>-1){g=e.createElement(_);g.text=c.join(W);f.appendChild(g);d(f,g)}else{for(var h=O;h<c.length;h++){g=e.createElement(_);g.text=c[h];f.appendChild(g);d(f,g)}}}
+showcase.onScriptDownloaded=function(a){j(function(){k(a)})};q(ab,bb);var l=o.createElement(_);l.src=i;if(showcase.__errFn){l.onerror=function(){showcase.__errFn(L,new Error(cb+code))}}o.getElementsByTagName(db)[O].appendChild(l)}
+showcase.__startLoadingFragment=function(a){return C(a)};showcase.__installRunAsyncCode=function(a){var b=u();var c=b.body;var d=b.createElement(_);d.language=eb;d.text=a;c.appendChild(d);c.removeChild(d)};function A(){var c={};var d;var e;var f=o.getElementsByTagName(fb);for(var g=O,h=f.length;g<h;++g){var i=f[g],j=i.getAttribute(gb),k;if(j){j=j.replace(hb,W);if(j.indexOf(ib)>=O){continue}if(j==jb){k=i.getAttribute(kb);if(k){var l,m=k.indexOf(lb);if(m>=O){j=k.substring(O,m);l=k.substring(m+P)}else{j=k;l=W}c[j]=l}}else if(j==mb){k=i.getAttribute(kb);if(k){try{d=eval(k)}catch(a){alert(nb+k+ob)}}}else if(j==pb){k=i.getAttribute(kb);if(k){try{e=eval(k)}catch(a){alert(nb+k+qb)}}}}}__gwt_getMetaProperty=function(a){var b=c[a];return b==null?null:b};r=d;showcase.__errFn=e}
+function B(){function e(a){var b=a.lastIndexOf(rb);if(b==-1){b=a.length}var c=a.indexOf(sb);if(c==-1){c=a.length}var d=a.lastIndexOf(tb,Math.min(c,b));return d>=O?a.substring(O,d+P):W}
+function f(a){if(a.match(/^\w+:\/\//)){}else{var b=o.createElement(ub);b.src=a+vb;a=e(b.src)}return a}
+function g(){var a=__gwt_getMetaProperty(wb);if(a!=null){return a}return W}
+function h(){var a=o.getElementsByTagName(_);for(var b=O;b<a.length;++b){if(a[b].src.indexOf(xb)!=-1){return e(a[b].src)}}return W}
+function i(){var a=o.getElementsByTagName(yb);if(a.length>O){return a[a.length-P].href}return W}
+function j(){var a=o.location;return a.href==a.protocol+zb+a.host+a.pathname+a.search+a.hash}
+var k=g();if(k==W){k=h()}if(k==W){k=i()}if(k==W&&j()){k=e(o.location.href)}k=f(k);return k}
+function C(a){if(a.match(/^\//)){return a}if(a.match(/^[a-zA-Z]+:\/\//)){return a}return showcase.__moduleBase+a}
+function D(){var f=[];var g=O;function h(a,b){var c=f;for(var d=O,e=a.length-P;d<e;++d){c=c[a[d]]||(c[a[d]]=[])}c[a[e]]=b}
+var i=[];var j=[];function k(a){var b=j[a](),c=i[a];if(b in c){return b}var d=[];for(var e in c){d[c[e]]=e}if(r){r(a,d,b)}throw null}
+j[Ab]=function(){var a=navigator.userAgent.toLowerCase();var b=o.documentMode;if(function(){return a.indexOf(Bb)!=-1}())return Cb;if(function(){return a.indexOf(Db)!=-1||b>=Eb}())return Fb;return W};i[Ab]={'gecko1_8':O,'safari':P};__gwt_isKnownPropertyValue=function(a,b){return b in i[a]};showcase.__getPropMap=function(){var a={};for(var b in i){if(i.hasOwnProperty(b)){a[b]=k(b)}}return a};showcase.__computePropValue=k;n.__gwt_activeModules[L].bindings=showcase.__getPropMap;q(H,Gb);if(p()){return C(Hb)}var l;try{h([Fb],Ib);h([Cb],Jb);l=f[k(Ab)];var m=l.indexOf(Kb);if(m!=-1){g=parseInt(l.substring(m+P),$);l=l.substring(O,m)}}catch(a){}showcase.__softPermutationId=g;return C(l+Lb)}
+function F(){if(!n.__gwt_stylesLoaded){n.__gwt_stylesLoaded={}}function c(a){if(!__gwt_stylesLoaded[a]){var b=o.createElement(Mb);b.setAttribute(Nb,Ob);b.setAttribute(Pb,C(a));o.getElementsByTagName(db)[O].appendChild(b);__gwt_stylesLoaded[a]=true}}
+q(Qb,I);c(Rb);q(Qb,Sb)}
+A();showcase.__moduleBase=B();s[L].moduleBase=showcase.__moduleBase;var G=D();F();q(H,Sb);w(G);return true}
+showcase.succeeded=showcase();
