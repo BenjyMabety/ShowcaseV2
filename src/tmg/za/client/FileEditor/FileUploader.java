@@ -44,7 +44,8 @@ public class FileUploader extends DialogBox {
 			@Override
 			public void onClick(ClickEvent event) {
 				try {
-					if (!getUpload().getFilename().isBlank()) {
+					String filename = getUpload().getFilename();
+					if (filename != null && !filename.trim().isEmpty()) {
 						openFile();
 					} else {
 						Window.alert("Please select a text file");

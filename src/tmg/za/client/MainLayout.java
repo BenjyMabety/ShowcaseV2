@@ -1261,7 +1261,8 @@ public class MainLayout extends Composite {
 			@Override
 			public void onClick(ClickEvent event) {
 				tbDocument.setReadOnly(false);
-				if (upload.getUpload().getFilename().isBlank()) {
+				String filename = upload.getUpload().getFilename();
+				if (filename == null || filename.trim().isEmpty()) {
 					tbDocument.setValue("Enter path here");
 				}
 				taCanvas.setValue("");

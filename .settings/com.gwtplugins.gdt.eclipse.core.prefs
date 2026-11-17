@@ -1,3 +1,5 @@
 eclipse.preferences.version=1
+jarsExcludedFromWebInfLib=
+lastWarOutDir=C\:/Users/lonwa/eclipse-workspace/Showcase/target/Showcase-0.0.1-SNAPSHOT
 warSrcDir=war
-warSrcDirIsOutput=true
+warSrcDirIsOutput=false
