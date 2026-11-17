@@ -55,6 +55,16 @@ http://localhost:8080/Showcase/Showcase.html
 ```
 
 ---
+### Docker setup
+# 1. Build the Docker image using your multi-stage Dockerfile
+docker build -t showcase-app .
+
+# 2. Stop and remove any existing container instance (if running)
+docker stop showcase-container
+docker rm showcase-container
+
+# 3. Run the fresh container, mapping port 8080
+docker run -d -p 8080:8080 --name showcase-container showcase-app
 
 ## 📋 Project Roadmap & TO-DOs
 
