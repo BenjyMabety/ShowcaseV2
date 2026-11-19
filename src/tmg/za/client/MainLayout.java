@@ -16,7 +16,6 @@ import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
-import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HasHorizontalAlignment;
 import com.google.gwt.user.client.ui.HorizontalPanel;
@@ -27,11 +26,7 @@ import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
 
-import tmg.za.client.FileEditor.FileEditor;
-import tmg.za.client.FileEditor.FileService;
-import tmg.za.client.FileEditor.FileServiceAsync;
 import tmg.za.client.FileEditor.FileUploader;
-import tmg.za.client.Login.Login;
 import tmg.za.client.Pacman.Ghost;
 import tmg.za.client.Pacman.Pacman;
 import tmg.za.client.Resources.Resources;
@@ -47,7 +42,7 @@ import tmg.za.shared.Physics;
 public class MainLayout extends Composite {
 
 	private static MainLayoutUiBinder uiBinder = GWT.create(MainLayoutUiBinder.class);
-	private final FileServiceAsync fileService = GWT.create(FileService.class);
+	// private final FileServiceAsync fileService = GWT.create(FileService.class);
 
 	Resources resources = GWT.create(Resources.class);
 	Physics physics = new Physics();
@@ -93,8 +88,8 @@ public class MainLayout extends Composite {
 	VerticalPanel buttonPanel;
 	@UiField
 	MyStyle style;
-	FileEditor fileEditor;
-	Login login;
+	// FileEditor fileEditor;
+	// Login login;
 	GuessingGame gg;
 	Ball ball;
 	SpaceForce sf;
@@ -115,48 +110,35 @@ public class MainLayout extends Composite {
 	public MainLayout() {
 		initWidget(uiBinder.createAndBindUi(this));
 		headerLabel.getElement().setAttribute("style", "font-weight: bold;font-size:100px;text-align:center;");
-		login = new Login();
+		// login = new Login();
 		gg = new GuessingGame();
-		fileEditor = new FileEditor();
+		// fileEditor = new FileEditor();
 		ball = new Ball();
 		sf = new SpaceForce();
 		snake = new Snake();
 		pacMan = new Pacman();
 
-		mainPanel.add(login.getPbLogin());
+		// mainPanel.add(login.getPbLogin());
 		mainPanel.add(gg.getPbGuess());
-		mainPanel.add(fileEditor.getPbFileEditor());
+		// mainPanel.add(fileEditor.getPbFileEditor());
 		mainPanel.add(ball.getPbBall());
 		mainPanel.add(sf.getPbSpaceForce());
 		mainPanel.add(snake.getPbSnake());
 		mainPanel.add(pacMan.getPbPacman());
 
-		login.getPbLogin().addClickHandler(new ClickHandler() {
-
-			@Override
-			public void onClick(ClickEvent event) {
-				if (t != null) {
-					t.cancel();
-				}
-				login.center();
-				login.setGlassEnabled(true);
-				taCanvas.setVisible(false);
-				tbDocument.setVisible(false);
-				buttonPanel.setVisible(false);
-				tbDocument.setText("");
-				tbDocument.setReadOnly(true);
-				mainCanvas.remove(ball.getImage());
-				mainCanvas.remove(sf.getImage());
-				mainCanvas.remove(snake.getImage());
-				mainCanvas.remove(fruit.getImage());
-				mainCanvas.remove(pacMan.getImage());
-				clearPacmanAssets();
-				clearAsteroids();
-				// ball.setLive(false);
-				controlPanel.setVisible(false);
-				setEnabled(false, true);
-			}
-		});
+		/*
+		 * login.getPbLogin().addClickHandler(new ClickHandler() {
+		 * 
+		 * @Override public void onClick(ClickEvent event) { if (t != null) {
+		 * t.cancel(); } login.center(); login.setGlassEnabled(true);
+		 * taCanvas.setVisible(false); tbDocument.setVisible(false);
+		 * buttonPanel.setVisible(false); tbDocument.setText("");
+		 * tbDocument.setReadOnly(true); mainCanvas.remove(ball.getImage());
+		 * mainCanvas.remove(sf.getImage()); mainCanvas.remove(snake.getImage());
+		 * mainCanvas.remove(fruit.getImage()); mainCanvas.remove(pacMan.getImage());
+		 * clearPacmanAssets(); clearAsteroids(); // ball.setLive(false);
+		 * controlPanel.setVisible(false); setEnabled(false, true); } });
+		 */
 		gg.getPbGuess().addClickHandler(new ClickHandler() {
 
 			@Override
@@ -453,7 +435,7 @@ public class MainLayout extends Composite {
 						"position: absolute; inset: 0px;background-position:center;background-repeat:no-repeat");
 			}
 		});
-		setUpEditorButtonHandlers();
+		// setUpEditorButtonHandlers();
 
 	}
 
@@ -1213,93 +1195,59 @@ public class MainLayout extends Composite {
 	/**
 	 * 
 	 */
-	private void setUpEditorButtonHandlers() {
-
-		buttonPanel.add(fileEditor.getNewButton());
-		buttonPanel.add(fileEditor.getEditButton());
-		buttonPanel.add(fileEditor.getSaveButton());
-		buttonPanel.add(fileEditor.getLoadButton());
-
-		ClickHandler openHandler = new ClickHandler() {
-
-			@Override
-			public void onClick(ClickEvent event) {
-				if (t != null) {
-					t.cancel();
-				}
-				taCanvas.setValue("");
-				taCanvas.setVisible(true);
-				tbDocument.setVisible(true);
-				upload.getOpenButton().setEnabled(true);
-				canvasPanel.setVisible(true);
-				buttonPanel.setVisible(true);
-				upload.center();
-				upload.setGlassEnabled(true);
-				tbDocument.setReadOnly(true);
-				mainCanvas.remove(ball.getImage());
-				mainCanvas.remove(sf.getImage());
-				clearAsteroids();
-				controlPanel.setVisible(false);
-				setEnabled(false, true);
-			}
-		};
-		fileEditor.getPbFileEditor().addClickHandler(openHandler);
-		fileEditor.getLoadButton().addClickHandler(openHandler);
-		upload.getCloseButton().addClickHandler(new ClickHandler() {
-
-			@Override
-			public void onClick(ClickEvent event) {
-				taCanvas.setValue(upload.getData());
-				tbDocument.setVisible(true);
-				tbDocument.setValue(upload.getUpload().getFilename());
-				tbDocument.setReadOnly(true);
-				upload.hide();
-			}
-		});
-		fileEditor.getNewButton().addClickHandler(new ClickHandler() {
-
-			@Override
-			public void onClick(ClickEvent event) {
-				tbDocument.setReadOnly(false);
-				String filename = upload.getUpload().getFilename();
-				if (filename == null || filename.trim().isEmpty()) {
-					tbDocument.setValue("Enter path here");
-				}
-				taCanvas.setValue("");
-
-			}
-		});
-		fileEditor.getEditButton().addClickHandler(new ClickHandler() {
-
-			@Override
-			public void onClick(ClickEvent event) {
-				taCanvas.setReadOnly(false);
-				tbDocument.setReadOnly(true);
-			}
-		});
-		fileEditor.getSaveButton().addClickHandler(new ClickHandler() {
-
-			@Override
-			public void onClick(ClickEvent event) {
-				fileService.saveFile(tbDocument.getValue(), taCanvas.getValue(), new AsyncCallback<String>() {
-
-					@Override
-					public void onFailure(Throwable caught) {
-						Window.alert(caught.getLocalizedMessage());
-					}
-
-					@Override
-					public void onSuccess(String result) {
-						taCanvas.setReadOnly(true);
-						tbDocument.setReadOnly(true);
-						Window.alert(result);
-					}
-				});
-
-			}
-		});
-
-	}
+	/*
+	 * private void setUpEditorButtonHandlers() {
+	 * 
+	 * buttonPanel.add(fileEditor.getNewButton());
+	 * buttonPanel.add(fileEditor.getEditButton());
+	 * buttonPanel.add(fileEditor.getSaveButton());
+	 * buttonPanel.add(fileEditor.getLoadButton());
+	 * 
+	 * ClickHandler openHandler = new ClickHandler() {
+	 * 
+	 * @Override public void onClick(ClickEvent event) { if (t != null) {
+	 * t.cancel(); } taCanvas.setValue(""); taCanvas.setVisible(true);
+	 * tbDocument.setVisible(true); upload.getOpenButton().setEnabled(true);
+	 * canvasPanel.setVisible(true); buttonPanel.setVisible(true); upload.center();
+	 * upload.setGlassEnabled(true); tbDocument.setReadOnly(true);
+	 * mainCanvas.remove(ball.getImage()); mainCanvas.remove(sf.getImage());
+	 * clearAsteroids(); controlPanel.setVisible(false); setEnabled(false, true); }
+	 * }; fileEditor.getPbFileEditor().addClickHandler(openHandler);
+	 * fileEditor.getLoadButton().addClickHandler(openHandler);
+	 * upload.getCloseButton().addClickHandler(new ClickHandler() {
+	 * 
+	 * @Override public void onClick(ClickEvent event) {
+	 * taCanvas.setValue(upload.getData()); tbDocument.setVisible(true);
+	 * tbDocument.setValue(upload.getUpload().getFilename());
+	 * tbDocument.setReadOnly(true); upload.hide(); } });
+	 * fileEditor.getNewButton().addClickHandler(new ClickHandler() {
+	 * 
+	 * @Override public void onClick(ClickEvent event) {
+	 * tbDocument.setReadOnly(false); String filename =
+	 * upload.getUpload().getFilename(); if (filename == null ||
+	 * filename.trim().isEmpty()) { tbDocument.setValue("Enter path here"); }
+	 * taCanvas.setValue("");
+	 * 
+	 * } }); fileEditor.getEditButton().addClickHandler(new ClickHandler() {
+	 * 
+	 * @Override public void onClick(ClickEvent event) {
+	 * taCanvas.setReadOnly(false); tbDocument.setReadOnly(true); } });
+	 * fileEditor.getSaveButton().addClickHandler(new ClickHandler() {
+	 * 
+	 * @Override public void onClick(ClickEvent event) {
+	 * fileService.saveFile(tbDocument.getValue(), taCanvas.getValue(), new
+	 * AsyncCallback<String>() {
+	 * 
+	 * @Override public void onFailure(Throwable caught) {
+	 * Window.alert(caught.getLocalizedMessage()); }
+	 * 
+	 * @Override public void onSuccess(String result) { taCanvas.setReadOnly(true);
+	 * tbDocument.setReadOnly(true); Window.alert(result); } });
+	 * 
+	 * } });
+	 * 
+	 * }
+	 */
 
 	/**
 	 * @param enabled

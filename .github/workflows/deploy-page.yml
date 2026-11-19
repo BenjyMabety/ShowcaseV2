@@ -1,0 +1,57 @@
+name: Build and Deploy GWT Static Preview
+
+on:
+  push:
+    branches:
+      - ShowcaseV2-preview
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout ShowcaseV2-preview
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: "maven"
+
+      - name: Build WAR and compile GWT client output
+        run: mvn -B clean package
+
+      - name: Stage static files for GitHub Pages
+        run: |
+          rm -rf pages-dist
+          mkdir -p pages-dist
+          cp -r target/Showcase-0.0.1-SNAPSHOT/. pages-dist/
+          rm -rf pages-dist/WEB-INF pages-dist/META-INF
+          touch pages-dist/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages-dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -4,25 +4,6 @@
               http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
          version="2.5"
          xmlns="http://java.sun.com/xml/ns/javaee">
-
-  <!-- Servlets -->
-  <servlet>
-    <servlet-name>greetServlet</servlet-name>
-    <servlet-class>tmg.za.server.GreetingServiceImpl</servlet-class>
-  </servlet>
-  <servlet>
-    <servlet-name>fileServlet</servlet-name>
-    <servlet-class>tmg.za.server.FileServiceImpl</servlet-class>
-  </servlet>
-  
-  <servlet-mapping>
-    <servlet-name>greetServlet</servlet-name>
-    <url-pattern>/showcase/greet</url-pattern>
-  </servlet-mapping>
-  <servlet-mapping>
-    <servlet-name>fileServlet</servlet-name>
-    <url-pattern>/showcase/file</url-pattern>
-  </servlet-mapping>
   
   <!-- Default page to serve -->
   <welcome-file-list>
