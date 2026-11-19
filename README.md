@@ -1,6 +1,8 @@
 # 🚀 ShowcaseV2-https://github.com/BenjyMabety/ShowcaseV2
 
 App deployed on github pages: https://benjymabety.github.io/ShowcaseV2/
+
+
 An interactive rich-client web application showcasing arcade-style mini-games (Snake, Spaceforce) built using **Java** and **Google Web Toolkit (GWT)**, running on an **Apache Tomcat** application server.
 
 ---
