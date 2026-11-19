@@ -38,6 +38,7 @@ jobs:
           mkdir -p pages-dist
           cp -r target/Showcase-0.0.1-SNAPSHOT/. pages-dist/
           rm -rf pages-dist/WEB-INF pages-dist/META-INF
+          cp pages-dist/Showcase.html pages-dist/index.html
           touch pages-dist/.nojekyll
 
       - name: Upload Pages artifact
