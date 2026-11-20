@@ -17,7 +17,7 @@
 }
 
 	</ui:style>
-<g:SplitLayoutPanel styleName='enabled'>
+<g:SplitLayoutPanel ui:field="splitLayout" styleName='enabled'>
 
 <g:north size ='125'>
 	<g:Label ui:field="headerLabel">Java GWT Showcase</g:Label>

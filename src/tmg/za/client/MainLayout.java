@@ -21,6 +21,7 @@ import com.google.gwt.user.client.ui.HasHorizontalAlignment;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.Label;
+import com.google.gwt.user.client.ui.SplitLayoutPanel;
 import com.google.gwt.user.client.ui.TextArea;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
@@ -70,6 +71,8 @@ public class MainLayout extends Composite {
 	private Timer ghostDespawnTimer;
 	private boolean isWaitingForInput = true;
 
+	@UiField
+	SplitLayoutPanel splitLayout;
 	@UiField
 	VerticalPanel mainPanel;
 	@UiField
@@ -1264,9 +1267,18 @@ public class MainLayout extends Composite {
 	}
 
 	private void applyHeaderViewportStyle(int clientWidth) {
-		String fontSize = (clientWidth <= 768) ? "24px" : "100px";
+		boolean mobile = clientWidth <= 768;
+		String fontSize = mobile ? "24px" : "100px";
 		headerLabel.getElement().setAttribute("style",
 				"font-weight: bold;font-size:" + fontSize + ";text-align:center;");
+
+		if (splitLayout != null && mainPanel != null) {
+			try {
+				splitLayout.setWidgetSize(mainPanel, mobile ? 140 : 360);
+				splitLayout.forceLayout();
+			} catch (Exception ignored) {
+			}
+		}
 	}
 
 }
