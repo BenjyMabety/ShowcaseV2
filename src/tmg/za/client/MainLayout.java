@@ -91,7 +91,7 @@ public class MainLayout extends Composite {
 	// FileEditor fileEditor;
 	// Login login;
 	GuessingGame gg;
-	Ball ball;
+	// Ball ball;
 	SpaceForce sf;
 	Snake snake;
 	Pacman pacMan;
@@ -109,11 +109,14 @@ public class MainLayout extends Composite {
 
 	public MainLayout() {
 		initWidget(uiBinder.createAndBindUi(this));
-		headerLabel.getElement().setAttribute("style", "font-weight: bold;font-size:100px;text-align:center;");
+		applyHeaderViewportStyle(Window.getClientWidth());
+		Window.addResizeHandler(event -> applyHeaderViewportStyle(event.getWidth()));
+		// headerLabel.getElement().setAttribute("style", "font-weight:
+		// bold;font-size:100px;text-align:center;");
 		// login = new Login();
 		gg = new GuessingGame();
 		// fileEditor = new FileEditor();
-		ball = new Ball();
+		// ball = new Ball();
 		sf = new SpaceForce();
 		snake = new Snake();
 		pacMan = new Pacman();
@@ -121,7 +124,7 @@ public class MainLayout extends Composite {
 		// mainPanel.add(login.getPbLogin());
 		mainPanel.add(gg.getPbGuess());
 		// mainPanel.add(fileEditor.getPbFileEditor());
-		mainPanel.add(ball.getPbBall());
+		// mainPanel.add(ball.getPbBall());
 		mainPanel.add(sf.getPbSpaceForce());
 		mainPanel.add(snake.getPbSnake());
 		mainPanel.add(pacMan.getPbPacman());
@@ -153,7 +156,7 @@ public class MainLayout extends Composite {
 				buttonPanel.setVisible(false);
 				tbDocument.setText("");
 				tbDocument.setReadOnly(true);
-				mainCanvas.remove(ball.getImage());
+				// mainCanvas.remove(ball.getImage());
 				mainCanvas.remove(sf.getImage());
 				mainCanvas.remove(snake.getImage());
 				mainCanvas.remove(fruit.getImage());
@@ -166,30 +169,20 @@ public class MainLayout extends Composite {
 			}
 		});
 
-		ball.getPbBall().addClickHandler(new ClickHandler() {
-
-			@Override
-			public void onClick(ClickEvent event) {
-				if (t != null) {
-					t.cancel();
-				}
-				canvasPanel.setVisible(false);
-				buttonPanel.setVisible(false);
-				setupControlPanel(BALL);
-				controlPanel.setVisible(true);
-				mainCanvas.add(ball.getImage().asWidget());
-				// ball.setLive(true);
-				mainCanvas.remove(sf.getImage());
-				mainCanvas.remove(snake.getImage());
-				mainCanvas.remove(fruit.getImage());
-				mainCanvas.remove(pacMan.getImage());
-				clearPacmanAssets();
-				clearAsteroids();
-				setEnabled(true, true);
-				mainCanvas.getParent().getElement().setAttribute("style",
-						"position: absolute; inset: 0px;background-position:center;background-repeat:no-repeat");
-			}
-		});
+		/*
+		 * ball.getPbBall().addClickHandler(new ClickHandler() {
+		 * 
+		 * @Override public void onClick(ClickEvent event) { if (t != null) {
+		 * t.cancel(); } canvasPanel.setVisible(false); buttonPanel.setVisible(false);
+		 * setupControlPanel(BALL); controlPanel.setVisible(true);
+		 * mainCanvas.add(ball.getImage().asWidget()); // ball.setLive(true);
+		 * mainCanvas.remove(sf.getImage()); mainCanvas.remove(snake.getImage());
+		 * mainCanvas.remove(fruit.getImage()); mainCanvas.remove(pacMan.getImage());
+		 * clearPacmanAssets(); clearAsteroids(); setEnabled(true, true);
+		 * mainCanvas.getParent().getElement().setAttribute("style",
+		 * "position: absolute; inset: 0px;background-position:center;background-repeat:no-repeat"
+		 * ); } });
+		 */
 		sf.getPbSpaceForce().addClickHandler(new ClickHandler() {
 
 			@Override
@@ -198,7 +191,7 @@ public class MainLayout extends Composite {
 				buttonPanel.setVisible(false);
 				controlPanel.setVisible(true);
 				setupControlPanel(SPACE);
-				mainCanvas.remove(ball.getImage());
+				// mainCanvas.remove(ball.getImage());
 				mainCanvas.remove(snake.getImage());
 				mainCanvas.remove(fruit.getImage());
 				mainCanvas.remove(pacMan.getImage());
@@ -373,7 +366,7 @@ public class MainLayout extends Composite {
 				snake.setHead(true);
 				// ball.setLive(true);
 				mainCanvas.remove(sf.getImage());
-				mainCanvas.remove(ball.getImage());
+				// mainCanvas.remove(ball.getImage());
 				mainCanvas.remove(pacMan.getImage());
 				mainCanvas.add(spawnFruit(false));
 				clearAsteroids();
@@ -422,7 +415,7 @@ public class MainLayout extends Composite {
 				mainCanvas.remove(sf.getImage());
 				mainCanvas.remove(snake.getImage());
 				mainCanvas.remove(fruit.getImage());
-				mainCanvas.remove(ball.getImage());
+				// mainCanvas.remove(ball.getImage());
 				clearAsteroids();
 
 				// Perform full game reset (Score = 0, reloads Map_1.txt, positions Pacman)
@@ -613,18 +606,19 @@ public class MainLayout extends Composite {
 	 */
 	private void setupControlPanel(String mode) {
 		controlPanel.clear();
-		if (mode.equalsIgnoreCase(BALL)) {
-			controlPanel.add(ball.getUpButton());
-			HorizontalPanel hp = new HorizontalPanel();
-			hp.add(ball.getLeftButton());
-			hp.add(ball.getDownButton());
-			hp.add(ball.getRightButton());
-			controlPanel.add(hp);
-			controlPanel.add(ball.getPbKeyboard());
-			controlPanel.add(ball.getTbFriction());
-			controlPanel.setCellHorizontalAlignment(hp, HasHorizontalAlignment.ALIGN_CENTER);
-			controlPanel.setCellHorizontalAlignment(ball.getUpButton(), HasHorizontalAlignment.ALIGN_CENTER);
-		} else if (mode.equalsIgnoreCase(SPACE)) {
+		/*
+		 * if (mode.equalsIgnoreCase(BALL)) { controlPanel.add(ball.getUpButton());
+		 * HorizontalPanel hp = new HorizontalPanel(); hp.add(ball.getLeftButton());
+		 * hp.add(ball.getDownButton()); hp.add(ball.getRightButton());
+		 * controlPanel.add(hp); controlPanel.add(ball.getPbKeyboard());
+		 * controlPanel.add(ball.getTbFriction());
+		 * controlPanel.setCellHorizontalAlignment(hp,
+		 * HasHorizontalAlignment.ALIGN_CENTER);
+		 * controlPanel.setCellHorizontalAlignment(ball.getUpButton(),
+		 * HasHorizontalAlignment.ALIGN_CENTER); } else
+		 */
+
+		if (mode.equalsIgnoreCase(SPACE)) {
 			controlPanel.add(sf.getUpButton());
 			HorizontalPanel hp = new HorizontalPanel();
 			hp.add(sf.getLeftButton());
@@ -1267,6 +1261,12 @@ public class MainLayout extends Composite {
 			getElement().removeClassName(enabled ? style.enabledBall() : style.enabledSpace());
 		}
 
+	}
+
+	private void applyHeaderViewportStyle(int clientWidth) {
+		String fontSize = (clientWidth <= 768) ? "24px" : "100px";
+		headerLabel.getElement().setAttribute("style",
+				"font-weight: bold;font-size:" + fontSize + ";text-align:center;");
 	}
 
 }
