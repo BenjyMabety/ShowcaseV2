@@ -1266,6 +1266,9 @@ public class MainLayout extends Composite {
 
 	}
 
+	/**
+	 * @param clientWidth
+	 */
 	private void applyHeaderViewportStyle(int clientWidth) {
 		boolean mobile = clientWidth <= 768;
 		String fontSize = mobile ? "24px" : "100px";
@@ -1274,7 +1277,13 @@ public class MainLayout extends Composite {
 
 		if (splitLayout != null && mainPanel != null) {
 			try {
-				splitLayout.setWidgetSize(mainPanel, mobile ? 140 : 360);
+				splitLayout.setWidgetSize(mainPanel, mobile ? 135 : 360);
+
+				int buttonWidth = mobile ? 120 : 220;
+				for (Widget w : mainPanel) {
+					w.setWidth(buttonWidth + "px");
+				}
+
 				splitLayout.forceLayout();
 			} catch (Exception ignored) {
 			}
