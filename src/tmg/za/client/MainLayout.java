@@ -1266,9 +1266,6 @@ public class MainLayout extends Composite {
 
 	}
 
-	/**
-	 * @param clientWidth
-	 */
 	private void applyHeaderViewportStyle(int clientWidth) {
 		boolean mobile = clientWidth <= 768;
 		String fontSize = mobile ? "24px" : "100px";
@@ -1277,29 +1274,34 @@ public class MainLayout extends Composite {
 
 		if (splitLayout != null && mainPanel != null) {
 			try {
-				splitLayout.setWidgetSize(mainPanel, mobile ? 135 : 360);
+				splitLayout.setWidgetSize(mainPanel, mobile ? 140 : 360);
 
 				if (mobile) {
-					mainPanel.setWidth("130px");
-					int buttonWidth = 120;
+					mainPanel.setWidth("135px");
 					for (Widget w : mainPanel) {
-						w.setWidth(buttonWidth + "px");
+						w.setWidth("125px");
+						w.getElement().getStyle().setProperty("maxWidth", "125px");
+						w.getElement().getStyle().setProperty("minWidth", "0");
 						w.getElement().getStyle().setProperty("whiteSpace", "nowrap");
 						w.getElement().getStyle().setProperty("overflow", "hidden");
 						w.getElement().getStyle().setProperty("textOverflow", "ellipsis");
 						if (w.getParent() != null) {
-							w.getParent().getElement().getStyle().setProperty("width", buttonWidth + "px");
+							w.getParent().getElement().getStyle().setProperty("width", "130px");
+							w.getParent().getElement().getStyle().setProperty("overflow", "hidden");
 						}
 					}
 				} else {
 					mainPanel.setWidth("");
 					for (Widget w : mainPanel) {
 						w.setWidth("220px");
+						w.getElement().getStyle().setProperty("maxWidth", "");
+						w.getElement().getStyle().setProperty("minWidth", "");
 						w.getElement().getStyle().setProperty("whiteSpace", "");
 						w.getElement().getStyle().setProperty("overflow", "");
 						w.getElement().getStyle().setProperty("textOverflow", "");
 						if (w.getParent() != null) {
 							w.getParent().getElement().getStyle().setProperty("width", "");
+							w.getParent().getElement().getStyle().setProperty("overflow", "");
 						}
 					}
 				}
