@@ -1279,13 +1279,34 @@ public class MainLayout extends Composite {
 			try {
 				splitLayout.setWidgetSize(mainPanel, mobile ? 135 : 360);
 
-				int buttonWidth = mobile ? 120 : 220;
-				for (Widget w : mainPanel) {
-					w.setWidth(buttonWidth + "px");
+				if (mobile) {
+					mainPanel.setWidth("130px");
+					int buttonWidth = 120;
+					for (Widget w : mainPanel) {
+						w.setWidth(buttonWidth + "px");
+						w.getElement().getStyle().setProperty("whiteSpace", "nowrap");
+						w.getElement().getStyle().setProperty("overflow", "hidden");
+						w.getElement().getStyle().setProperty("textOverflow", "ellipsis");
+						if (w.getParent() != null) {
+							w.getParent().getElement().getStyle().setProperty("width", buttonWidth + "px");
+						}
+					}
+				} else {
+					mainPanel.setWidth("");
+					for (Widget w : mainPanel) {
+						w.setWidth("220px");
+						w.getElement().getStyle().setProperty("whiteSpace", "");
+						w.getElement().getStyle().setProperty("overflow", "");
+						w.getElement().getStyle().setProperty("textOverflow", "");
+						if (w.getParent() != null) {
+							w.getParent().getElement().getStyle().setProperty("width", "");
+						}
+					}
 				}
 
 				splitLayout.forceLayout();
-			} catch (Exception ignored) {
+			} catch (Exception ex) {
+				GWT.log("Error applying viewport layout styles", ex);
 			}
 		}
 	}
