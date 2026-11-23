@@ -1266,27 +1266,56 @@ public class MainLayout extends Composite {
 
 	}
 
-	/**
-	 * @param clientWidth
-	 */
 	private void applyHeaderViewportStyle(int clientWidth) {
 		boolean mobile = clientWidth <= 768;
 		String fontSize = mobile ? "24px" : "100px";
 		headerLabel.getElement().setAttribute("style",
 				"font-weight: bold;font-size:" + fontSize + ";text-align:center;");
 
-		if (splitLayout != null && mainPanel != null) {
-			try {
-				splitLayout.setWidgetSize(mainPanel, mobile ? 135 : 360);
+		if (splitLayout == null || mainPanel == null) {
+			return;
+		}
 
-				int buttonWidth = mobile ? 120 : 220;
-				for (Widget w : mainPanel) {
-					w.setWidth(buttonWidth + "px");
+		try {
+			splitLayout.setWidgetSize(mainPanel, mobile ? 165 : 360);
+
+			String mainWidth = mobile ? "150px" : "";
+			String itemWidth = mobile ? "100px" : "220px";
+			String parentWidth = mobile ? "105px" : "";
+
+			mainPanel.setWidth(mainWidth);
+			mainPanel.getElement().getStyle().setProperty("maxWidth", mainWidth);
+
+			for (Widget w : mainPanel) {
+				w.setWidth(itemWidth);
+				w.getElement().getStyle().setProperty("width", itemWidth);
+				w.getElement().getStyle().setProperty("minWidth", mobile ? "0px" : "");
+				w.getElement().getStyle().setProperty("maxWidth", mobile ? "100px" : "");
+				w.getElement().getStyle().setProperty("whiteSpace", mobile ? "nowrap" : "");
+				w.getElement().getStyle().setProperty("overflow", mobile ? "hidden" : "");
+				w.getElement().getStyle().setProperty("textOverflow", mobile ? "ellipsis" : "");
+
+				if (w.getParent() != null) {
+					w.getParent().getElement().getStyle().setProperty("width", parentWidth);
+					w.getParent().getElement().getStyle().setProperty("overflow", mobile ? "hidden" : "");
 				}
-
-				splitLayout.forceLayout();
-			} catch (Exception ignored) {
 			}
+
+			if (controlPanel != null) {
+				controlPanel.setWidth(mobile ? "100px" : "");
+				for (Widget w : controlPanel) {
+					w.getElement().getStyle().setProperty("maxWidth", mobile ? "90px" : "");
+					w.getElement().getStyle().setProperty("overflow", mobile ? "hidden" : "");
+				}
+			}
+
+			com.google.gwt.core.client.Scheduler.get().scheduleDeferred(() -> {
+				if (splitLayout != null) {
+					splitLayout.forceLayout();
+				}
+			});
+		} catch (Exception ex) {
+			GWT.log("Error applying viewport layout styles", ex);
 		}
 	}
 
