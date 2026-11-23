@@ -1274,24 +1274,28 @@ public class MainLayout extends Composite {
 
 		if (splitLayout != null && mainPanel != null) {
 			try {
-				splitLayout.setWidgetSize(mainPanel, mobile ? 120 : 360);
-				if (controlPanel != null) {
-					splitLayout.setWidgetSize(controlPanel, mobile ? 0 : 360);
-				}
+				splitLayout.setWidgetSize(mainPanel, mobile ? 115 : 360);
 
 				if (mobile) {
-					mainPanel.setWidth("115px");
+					mainPanel.setWidth("110px");
 					for (Widget w : mainPanel) {
-						w.setWidth("110px");
-						w.getElement().getStyle().setProperty("width", "110px");
+						w.setWidth("105px");
+						w.getElement().getStyle().setProperty("width", "105px");
 						w.getElement().getStyle().setProperty("minWidth", "0px");
-						w.getElement().getStyle().setProperty("maxWidth", "110px");
+						w.getElement().getStyle().setProperty("maxWidth", "105px");
 						w.getElement().getStyle().setProperty("whiteSpace", "nowrap");
 						w.getElement().getStyle().setProperty("overflow", "hidden");
 						w.getElement().getStyle().setProperty("textOverflow", "ellipsis");
 						if (w.getParent() != null) {
-							w.getParent().getElement().getStyle().setProperty("width", "110px");
+							w.getParent().getElement().getStyle().setProperty("width", "105px");
 							w.getParent().getElement().getStyle().setProperty("overflow", "hidden");
+						}
+					}
+					if (controlPanel != null) {
+						controlPanel.setWidth("105px");
+						for (Widget w : controlPanel) {
+							w.getElement().getStyle().setProperty("maxWidth", "95px");
+							w.getElement().getStyle().setProperty("overflow", "hidden");
 						}
 					}
 				} else {
@@ -1307,6 +1311,13 @@ public class MainLayout extends Composite {
 						if (w.getParent() != null) {
 							w.getParent().getElement().getStyle().setProperty("width", "");
 							w.getParent().getElement().getStyle().setProperty("overflow", "");
+						}
+					}
+					if (controlPanel != null) {
+						controlPanel.setWidth("");
+						for (Widget w : controlPanel) {
+							w.getElement().getStyle().setProperty("maxWidth", "");
+							w.getElement().getStyle().setProperty("overflow", "");
 						}
 					}
 				}
