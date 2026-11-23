@@ -1274,19 +1274,23 @@ public class MainLayout extends Composite {
 
 		if (splitLayout != null && mainPanel != null) {
 			try {
-				splitLayout.setWidgetSize(mainPanel, mobile ? 140 : 360);
+				splitLayout.setWidgetSize(mainPanel, mobile ? 120 : 360);
+				if (controlPanel != null) {
+					splitLayout.setWidgetSize(controlPanel, mobile ? 0 : 360);
+				}
 
 				if (mobile) {
-					mainPanel.setWidth("135px");
+					mainPanel.setWidth("115px");
 					for (Widget w : mainPanel) {
-						w.setWidth("125px");
-						w.getElement().getStyle().setProperty("maxWidth", "125px");
-						w.getElement().getStyle().setProperty("minWidth", "0");
+						w.setWidth("110px");
+						w.getElement().getStyle().setProperty("width", "110px");
+						w.getElement().getStyle().setProperty("minWidth", "0px");
+						w.getElement().getStyle().setProperty("maxWidth", "110px");
 						w.getElement().getStyle().setProperty("whiteSpace", "nowrap");
 						w.getElement().getStyle().setProperty("overflow", "hidden");
 						w.getElement().getStyle().setProperty("textOverflow", "ellipsis");
 						if (w.getParent() != null) {
-							w.getParent().getElement().getStyle().setProperty("width", "130px");
+							w.getParent().getElement().getStyle().setProperty("width", "110px");
 							w.getParent().getElement().getStyle().setProperty("overflow", "hidden");
 						}
 					}
@@ -1294,8 +1298,9 @@ public class MainLayout extends Composite {
 					mainPanel.setWidth("");
 					for (Widget w : mainPanel) {
 						w.setWidth("220px");
-						w.getElement().getStyle().setProperty("maxWidth", "");
+						w.getElement().getStyle().setProperty("width", "220px");
 						w.getElement().getStyle().setProperty("minWidth", "");
+						w.getElement().getStyle().setProperty("maxWidth", "");
 						w.getElement().getStyle().setProperty("whiteSpace", "");
 						w.getElement().getStyle().setProperty("overflow", "");
 						w.getElement().getStyle().setProperty("textOverflow", "");
