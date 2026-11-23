@@ -1249,6 +1249,26 @@ public class MainLayout extends Composite {
 	/**
 	 * @param enabled
 	 */
+	void setEnabled(boolean enabled, boolean ball) {
+		if (ball) {
+			getElement().addClassName(enabled ? style.enabledBall() : style.disabled());
+			getElement().addClassName(enabled ? style.enabledBall() : style.enabledSpace());
+			getElement().removeClassName(enabled ? style.disabled() : style.enabledBall());
+			getElement().removeClassName(enabled ? style.enabledSpace() : style.enabledBall());
+		}
+
+		else {
+			getElement().addClassName(enabled ? style.enabledSpace() : style.disabled());
+			getElement().addClassName(enabled ? style.enabledSpace() : style.enabledBall());
+			getElement().removeClassName(enabled ? style.disabled() : style.enabledSpace());
+			getElement().removeClassName(enabled ? style.enabledBall() : style.enabledSpace());
+		}
+
+	}
+
+	/**
+	 * @param clientWidth
+	 */
 	private void applyHeaderViewportStyle(int clientWidth) {
 		boolean mobile = clientWidth <= 768;
 		String fontSize = mobile ? "24px" : "100px";
@@ -1257,59 +1277,15 @@ public class MainLayout extends Composite {
 
 		if (splitLayout != null && mainPanel != null) {
 			try {
-				splitLayout.setWidgetSize(mainPanel, mobile ? 145 : 360);
+				splitLayout.setWidgetSize(mainPanel, mobile ? 135 : 360);
 
-				if (mobile) {
-					mainPanel.setWidth("135px");
-					mainPanel.getElement().getStyle().setProperty("maxWidth", "135px");
-					for (Widget w : mainPanel) {
-						w.setWidth("105px");
-						w.getElement().getStyle().setProperty("width", "105px");
-						w.getElement().getStyle().setProperty("minWidth", "0px");
-						w.getElement().getStyle().setProperty("maxWidth", "105px");
-						w.getElement().getStyle().setProperty("whiteSpace", "nowrap");
-						w.getElement().getStyle().setProperty("overflow", "hidden");
-						w.getElement().getStyle().setProperty("textOverflow", "ellipsis");
-						if (w.getParent() != null) {
-							w.getParent().getElement().getStyle().setProperty("width", "110px");
-							w.getParent().getElement().getStyle().setProperty("overflow", "hidden");
-						}
-					}
-					if (controlPanel != null) {
-						controlPanel.setWidth("100px");
-						for (Widget w : controlPanel) {
-							w.getElement().getStyle().setProperty("maxWidth", "90px");
-							w.getElement().getStyle().setProperty("overflow", "hidden");
-						}
-					}
-				} else {
-					mainPanel.setWidth("");
-					mainPanel.getElement().getStyle().setProperty("maxWidth", "");
-					for (Widget w : mainPanel) {
-						w.setWidth("220px");
-						w.getElement().getStyle().setProperty("width", "220px");
-						w.getElement().getStyle().setProperty("minWidth", "");
-						w.getElement().getStyle().setProperty("maxWidth", "");
-						w.getElement().getStyle().setProperty("whiteSpace", "");
-						w.getElement().getStyle().setProperty("overflow", "");
-						w.getElement().getStyle().setProperty("textOverflow", "");
-						if (w.getParent() != null) {
-							w.getParent().getElement().getStyle().setProperty("width", "");
-							w.getParent().getElement().getStyle().setProperty("overflow", "");
-						}
-					}
-					if (controlPanel != null) {
-						controlPanel.setWidth("");
-						for (Widget w : controlPanel) {
-							w.getElement().getStyle().setProperty("maxWidth", "");
-							w.getElement().getStyle().setProperty("overflow", "");
-						}
-					}
+				int buttonWidth = mobile ? 120 : 220;
+				for (Widget w : mainPanel) {
+					w.setWidth(buttonWidth + "px");
 				}
 
 				splitLayout.forceLayout();
-			} catch (Exception ex) {
-				GWT.log("Error applying viewport layout styles", ex);
+			} catch (Exception ignored) {
 			}
 		}
 	}
