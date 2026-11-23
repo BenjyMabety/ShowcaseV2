@@ -1274,27 +1274,27 @@ public class MainLayout extends Composite {
 
 		if (splitLayout != null && mainPanel != null) {
 			try {
-				splitLayout.setWidgetSize(mainPanel, mobile ? 115 : 360);
+				splitLayout.setWidgetSize(mainPanel, mobile ? 145 : 360);
 
 				if (mobile) {
-					mainPanel.setWidth("110px");
+					mainPanel.setWidth("130px");
 					for (Widget w : mainPanel) {
-						w.setWidth("105px");
-						w.getElement().getStyle().setProperty("width", "105px");
+						w.setWidth("115px");
+						w.getElement().getStyle().setProperty("width", "115px");
 						w.getElement().getStyle().setProperty("minWidth", "0px");
-						w.getElement().getStyle().setProperty("maxWidth", "105px");
+						w.getElement().getStyle().setProperty("maxWidth", "115px");
 						w.getElement().getStyle().setProperty("whiteSpace", "nowrap");
 						w.getElement().getStyle().setProperty("overflow", "hidden");
 						w.getElement().getStyle().setProperty("textOverflow", "ellipsis");
 						if (w.getParent() != null) {
-							w.getParent().getElement().getStyle().setProperty("width", "105px");
+							w.getParent().getElement().getStyle().setProperty("width", "120px");
 							w.getParent().getElement().getStyle().setProperty("overflow", "hidden");
 						}
 					}
 					if (controlPanel != null) {
-						controlPanel.setWidth("105px");
+						controlPanel.setWidth("100px");
 						for (Widget w : controlPanel) {
-							w.getElement().getStyle().setProperty("maxWidth", "95px");
+							w.getElement().getStyle().setProperty("maxWidth", "90px");
 							w.getElement().getStyle().setProperty("overflow", "hidden");
 						}
 					}
