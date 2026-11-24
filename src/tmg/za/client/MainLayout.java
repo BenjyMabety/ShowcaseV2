@@ -1278,33 +1278,41 @@ public class MainLayout extends Composite {
 
 		try {
 			splitLayout.setWidgetSize(mainPanel, mobile ? 165 : 360);
+			if (controlPanel != null) {
+				splitLayout.setWidgetSize(controlPanel, mobile ? 90 : 360);
+			}
 
 			String mainWidth = mobile ? "150px" : "";
-			String itemWidth = mobile ? "100px" : "220px";
-			String parentWidth = mobile ? "105px" : "";
+			String itemWidth = mobile ? "110px" : "220px";
+			String parentWidth = mobile ? "115px" : "";
 
 			mainPanel.setWidth(mainWidth);
 			mainPanel.getElement().getStyle().setProperty("maxWidth", mainWidth);
+			mainPanel.getElement().getStyle().setProperty("boxSizing", "border-box");
 
 			for (Widget w : mainPanel) {
 				w.setWidth(itemWidth);
 				w.getElement().getStyle().setProperty("width", itemWidth);
 				w.getElement().getStyle().setProperty("minWidth", mobile ? "0px" : "");
-				w.getElement().getStyle().setProperty("maxWidth", mobile ? "100px" : "");
+				w.getElement().getStyle().setProperty("maxWidth", mobile ? itemWidth : "");
+				w.getElement().getStyle().setProperty("boxSizing", mobile ? "border-box" : "");
 				w.getElement().getStyle().setProperty("whiteSpace", mobile ? "nowrap" : "");
 				w.getElement().getStyle().setProperty("overflow", mobile ? "hidden" : "");
 				w.getElement().getStyle().setProperty("textOverflow", mobile ? "ellipsis" : "");
 
 				if (w.getParent() != null) {
 					w.getParent().getElement().getStyle().setProperty("width", parentWidth);
+					w.getParent().getElement().getStyle().setProperty("boxSizing", mobile ? "border-box" : "");
 					w.getParent().getElement().getStyle().setProperty("overflow", mobile ? "hidden" : "");
 				}
 			}
 
 			if (controlPanel != null) {
-				controlPanel.setWidth(mobile ? "100px" : "");
+				controlPanel.setWidth(mobile ? "85px" : "");
+				controlPanel.getElement().getStyle().setProperty("boxSizing", mobile ? "border-box" : "");
 				for (Widget w : controlPanel) {
-					w.getElement().getStyle().setProperty("maxWidth", mobile ? "90px" : "");
+					w.getElement().getStyle().setProperty("maxWidth", mobile ? "80px" : "");
+					w.getElement().getStyle().setProperty("boxSizing", mobile ? "border-box" : "");
 					w.getElement().getStyle().setProperty("overflow", mobile ? "hidden" : "");
 				}
 			}
