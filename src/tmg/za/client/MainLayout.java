@@ -112,7 +112,6 @@ public class MainLayout extends Composite {
 
 	public MainLayout() {
 		initWidget(uiBinder.createAndBindUi(this));
-		applyHeaderViewportStyle(Window.getClientWidth());
 		Window.addResizeHandler(event -> applyHeaderViewportStyle(event.getWidth()));
 		// headerLabel.getElement().setAttribute("style", "font-weight:
 		// bold;font-size:100px;text-align:center;");
@@ -131,6 +130,7 @@ public class MainLayout extends Composite {
 		mainPanel.add(sf.getPbSpaceForce());
 		mainPanel.add(snake.getPbSnake());
 		mainPanel.add(pacMan.getPbPacman());
+		applyHeaderViewportStyle(Window.getClientWidth());
 
 		/*
 		 * login.getPbLogin().addClickHandler(new ClickHandler() {
@@ -1269,6 +1269,20 @@ public class MainLayout extends Composite {
 	private void applyHeaderViewportStyle(int clientWidth) {
 		boolean mobile = clientWidth <= 768;
 		String fontSize = mobile ? "24px" : "100px";
+		boolean enableCanvasGames = !mobile;
+
+		if (sf != null && sf.getPbSpaceForce() != null) {
+			sf.getPbSpaceForce().setEnabled(enableCanvasGames);
+			sf.getPbSpaceForce().setTitle(mobile ? "Available on desktop" : "");
+		}
+		if (snake != null && snake.getPbSnake() != null) {
+			snake.getPbSnake().setEnabled(enableCanvasGames);
+			snake.getPbSnake().setTitle(mobile ? "Available on desktop" : "");
+		}
+		if (pacMan != null && pacMan.getPbPacman() != null) {
+			pacMan.getPbPacman().setEnabled(enableCanvasGames);
+			pacMan.getPbPacman().setTitle(mobile ? "Available on desktop" : "");
+		}
 		headerLabel.getElement().setAttribute("style",
 				"font-weight: bold;font-size:" + fontSize + ";text-align:center;");
 
