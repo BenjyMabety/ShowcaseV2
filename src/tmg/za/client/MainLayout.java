@@ -12,15 +12,20 @@ import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.dom.client.KeyCodes;
 import com.google.gwt.event.dom.client.KeyUpEvent;
 import com.google.gwt.event.dom.client.KeyUpHandler;
+import com.google.gwt.http.client.URL;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
+import com.google.gwt.user.client.ui.Anchor;
+import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.DialogBox;
 import com.google.gwt.user.client.ui.HasHorizontalAlignment;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.Label;
+import com.google.gwt.user.client.ui.PopupPanel;
 import com.google.gwt.user.client.ui.SplitLayoutPanel;
 import com.google.gwt.user.client.ui.TextArea;
 import com.google.gwt.user.client.ui.TextBox;
@@ -317,10 +322,9 @@ public class MainLayout extends Composite {
 							double cTop = childTopStr.isEmpty() ? 0.0 : Double.valueOf(childTopStr);
 
 							// If head coordinates perfectly match a tail segment coordinate, end the game
-							// If head coordinates perfectly match a tail segment coordinate, end the game
 							if (hLeft == cLeft && hTop == cTop) {
-								t.cancel(); // Stop the game loop timer immediately
-								Window.alert("Game Over! You bit your tail.");
+								t.cancel(); // Pause game loop while popup is open
+								int finalScore = score;
 
 								// 1. Clear out tail children and reset head position
 								snake.reset();
@@ -332,9 +336,9 @@ public class MainLayout extends Composite {
 								// 3. Re-initialize baseline starting speed delay
 								currentSpeed = 1000;
 
-								// 4. Automatically re-launch the game timer loop instantly
-								t.scheduleRepeating(currentSpeed);
-								return; // Exit the loop and redraw execution early
+								// 4. Show Game Over popup with Share & Close
+								showSnakeGameOverDialog(finalScore);
+								return;
 							}
 
 						}
@@ -433,6 +437,114 @@ public class MainLayout extends Composite {
 		});
 		// setUpEditorButtonHandlers();
 
+	}
+
+	private void showSnakeGameOverDialog(int finalScore) {
+		com.google.gwt.user.client.ui.DialogBox gameOverBox = new com.google.gwt.user.client.ui.DialogBox(false, true);
+		gameOverBox.setText("Game Over");
+		gameOverBox.setGlassEnabled(true);
+
+		com.google.gwt.user.client.ui.VerticalPanel content = new com.google.gwt.user.client.ui.VerticalPanel();
+		content.setSpacing(8);
+
+		content.add(new Label("You bit your tail! Final Score: " + finalScore));
+
+		String shareText = "I scored " + finalScore + " points in Snake on Ben's Java GWT Showcase! (PC)";
+		String currentUrl = Window.Location.getHref();
+		String encodedText = com.google.gwt.http.client.URL.encodeQueryString(shareText);
+		String encodedUrl = com.google.gwt.http.client.URL.encodeQueryString(currentUrl);
+
+		com.google.gwt.user.client.ui.Button shareButton = new com.google.gwt.user.client.ui.Button("Share");
+		shareButton.addClickHandler(event -> {
+			com.google.gwt.user.client.ui.PopupPanel sharePopup = new com.google.gwt.user.client.ui.PopupPanel(true);
+			com.google.gwt.user.client.ui.VerticalPanel linksBox = new com.google.gwt.user.client.ui.VerticalPanel();
+			linksBox.setSpacing(6);
+
+			com.google.gwt.user.client.ui.Anchor shareWhatsApp = new com.google.gwt.user.client.ui.Anchor("WhatsApp",
+					true, "https://wa.me/?text="
+							+ com.google.gwt.http.client.URL.encodeQueryString(shareText + " " + currentUrl));
+			shareWhatsApp.getElement().setAttribute("target", "_blank");
+			shareWhatsApp.getElement().setAttribute("rel", "noopener noreferrer");
+
+			com.google.gwt.user.client.ui.Anchor shareX = new com.google.gwt.user.client.ui.Anchor("X", true,
+					"https://twitter.com/intent/tweet?text=" + encodedText + "&url=" + encodedUrl);
+			shareX.getElement().setAttribute("target", "_blank");
+			shareX.getElement().setAttribute("rel", "noopener noreferrer");
+
+			linksBox.add(shareWhatsApp);
+			linksBox.add(shareX);
+			sharePopup.setWidget(linksBox);
+			sharePopup.showRelativeTo(shareButton);
+		});
+
+		com.google.gwt.user.client.ui.Button closeButton = new com.google.gwt.user.client.ui.Button("Close");
+		closeButton.addClickHandler(event -> {
+			gameOverBox.hide();
+			if (t != null) {
+				t.scheduleRepeating(currentSpeed);
+			}
+		});
+
+		HorizontalPanel actions = new HorizontalPanel();
+		actions.setSpacing(8);
+		actions.add(shareButton);
+		actions.add(closeButton);
+		content.add(actions);
+
+		gameOverBox.setWidget(content);
+		gameOverBox.center();
+		gameOverBox.show();
+	}
+
+	private void showPacmanGameOverDialog(int finalScore) {
+		DialogBox gameOverBox = new DialogBox(false, true);
+		gameOverBox.setText("Game Over");
+		gameOverBox.setGlassEnabled(true);
+
+		VerticalPanel content = new VerticalPanel();
+		content.setSpacing(8);
+
+		content.add(new Label("Pacman was caught by a ghost! Final Score: " + finalScore));
+
+		String shareText = "I scored " + finalScore + " points in Pacman on Ben's Java GWT Showcase! (PC)";
+		String currentUrl = Window.Location.getHref();
+		String encodedText = URL.encodeQueryString(shareText);
+		String encodedUrl = URL.encodeQueryString(currentUrl);
+
+		Button shareButton = new Button("Share");
+		shareButton.addClickHandler(event -> {
+			PopupPanel sharePopup = new PopupPanel(true);
+			VerticalPanel linksBox = new VerticalPanel();
+			linksBox.setSpacing(6);
+
+			Anchor shareWhatsApp = new Anchor("WhatsApp", true,
+					"https://wa.me/?text=" + URL.encodeQueryString(shareText + " " + currentUrl));
+			shareWhatsApp.getElement().setAttribute("target", "_blank");
+			shareWhatsApp.getElement().setAttribute("rel", "noopener noreferrer");
+
+			Anchor shareX = new Anchor("X", true,
+					"https://twitter.com/intent/tweet?text=" + encodedText + "&url=" + encodedUrl);
+			shareX.getElement().setAttribute("target", "_blank");
+			shareX.getElement().setAttribute("rel", "noopener noreferrer");
+
+			linksBox.add(shareWhatsApp);
+			linksBox.add(shareX);
+			sharePopup.setWidget(linksBox);
+			sharePopup.showRelativeTo(shareButton);
+		});
+
+		Button closeButton = new Button("Close");
+		closeButton.addClickHandler(event -> gameOverBox.hide());
+
+		HorizontalPanel actions = new HorizontalPanel();
+		actions.setSpacing(8);
+		actions.add(shareButton);
+		actions.add(closeButton);
+		content.add(actions);
+
+		gameOverBox.setWidget(content);
+		gameOverBox.center();
+		gameOverBox.show();
 	}
 
 	private void redraw() {
@@ -1035,8 +1147,9 @@ public class MainLayout extends Composite {
 			int ghostRow = Math.round((float) g.getTopStep() / 30);
 
 			if (pacCol == ghostCol && pacRow == ghostRow) {
-				com.google.gwt.user.client.Window.alert("Game Over! Pacman was caught by a ghost.");
+				int finalScore = score;
 				resetPacmanGame(true); // Full reset: score = 0, reloads Map_1.txt
+				showPacmanGameOverDialog(finalScore);
 				return;
 			}
 		}
