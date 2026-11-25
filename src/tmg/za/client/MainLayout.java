@@ -75,6 +75,15 @@ public class MainLayout extends Composite {
 	private final List<Ghost> activeGhosts = new ArrayList<>();
 	private Timer ghostDespawnTimer;
 	private boolean isWaitingForInput = true;
+	private final List<Image> activeExplosions = new ArrayList<>();
+	private final List<Timer> activeExplosionTimers = new ArrayList<>();
+	private Timer spaceSwayTimer;
+	private boolean spaceHandlersInitialized = false;
+	private int extraLives = 0;
+	private final HorizontalPanel lifePanel = new HorizontalPanel();
+	private final List<Image> lifeCoinImages = new ArrayList<>();
+	private final List<Widget> activeLifeBanners = new ArrayList<>();
+	private final List<Timer> activeLifeBannerTimers = new ArrayList<>();
 
 	@UiField
 	SplitLayoutPanel splitLayout;
@@ -111,6 +120,50 @@ public class MainLayout extends Composite {
 	private com.google.gwt.user.client.ui.Label scoreLabel = new com.google.gwt.user.client.ui.Label("Score: 0");
 
 	ArrayList<Asteroid> asteroids = new ArrayList<Asteroid>();
+	private static final int INITIAL_BULLETS = 10;
+	private static final int[] POWER_UP_AMOUNTS = { 10, 20, 50 };
+
+	private int bulletsRemaining = INITIAL_BULLETS;
+	private int survivalSeconds = 0;
+	private int asteroidsDestroyed = 0;
+	private Timer survivalTimer;
+
+	private final Label ammoLabel = new Label("Bullets: " + INITIAL_BULLETS);
+	private final Label survivalLabel = new Label("Survived: 0s");
+	private final Label asteroidsLabel = new Label("Asteroids: 0");
+
+	private static class SpaceAsteroid {
+		final Asteroid asteroid;
+
+		SpaceAsteroid(Asteroid asteroid) {
+			this.asteroid = asteroid;
+		}
+	}
+
+	private static class BulletPowerUp {
+		final Image image;
+		final int bulletBonus;
+		int rightStep;
+		int topStep;
+
+		BulletPowerUp(Image image, int bulletBonus, int rightStep, int topStep) {
+			this.image = image;
+			this.bulletBonus = bulletBonus;
+			this.rightStep = rightStep;
+			this.topStep = topStep;
+		}
+
+		void moveX(int deltaX) {
+			rightStep += deltaX;
+			image.getElement().getStyle().setPosition(Position.ABSOLUTE);
+			image.getElement().getStyle().setLeft(rightStep, Unit.PX);
+			image.getElement().getStyle().setTop(topStep, Unit.PX);
+			image.setVisible(true);
+		}
+	}
+
+	private final List<SpaceAsteroid> spaceAsteroids = new ArrayList<>();
+	private final List<BulletPowerUp> spacePowerUps = new ArrayList<>();
 	Fruit fruit = new Fruit();
 
 	FileUploader upload = new FileUploader();
@@ -199,60 +252,18 @@ public class MainLayout extends Composite {
 				buttonPanel.setVisible(false);
 				controlPanel.setVisible(true);
 				setupControlPanel(SPACE);
-				// mainCanvas.remove(ball.getImage());
 				mainCanvas.remove(snake.getImage());
 				mainCanvas.remove(fruit.getImage());
 				mainCanvas.remove(pacMan.getImage());
-				// ball.setLive(false);
 				setEnabled(true, false);
-				mainCanvas.add(sf.getImage().asWidget());
-				renderAsteroids();
 				clearPacmanAssets();
-				sf.setDistance(mainCanvas.getAbsoluteLeft());
+				resetSpaceGame(true);
 
-				// left:735px;top:0px;
-				// left:735px;top:195px;
-				// left:735px;top:375px;
-
-				if (t != null) {
-					t.cancel();
-				}
-
-				t = new Timer() {
-
-					@Override
-					public void run() {
-						redraw();
+				com.google.gwt.core.client.Scheduler.get().scheduleDeferred(() -> {
+					if (sf != null && sf.getPbKeyboard() != null && sf.getPbKeyboard().isAttached()) {
+						sf.getPbKeyboard().setFocus(true);
 					}
-
-					private void redraw() {
-
-						mainCanvas.getParent().getElement().setAttribute("style",
-								"position: absolute; inset: 0px;background-position:" + sf.getDistance()
-										+ "px;background-repeat:repeat-x;");
-						sf.setDistance(sf.getDistance() - physics.getSpace());
-						for (int i = 0; i < asteroids.size(); i++) {
-							asteroids.get(i).moveX(-physics.getForce(asteroids.get(i).getMass(), false, false));
-							if (asteroids.get(i).getImage().getAbsoluteLeft() < 165) {
-								asteroids.remove(asteroids.get(i));
-								continue;
-							}
-							// asteroid.moveX(-1);
-							if (physics.checkCollision(sf, asteroids.get(i))) {
-								Window.alert("Game Over");
-								sf.getImage().removeFromParent();
-								resetSpace();
-							}
-						}
-						if (asteroids.isEmpty()) {
-							renderAsteroids();
-						}
-
-					}
-
-				};
-				t.scheduleRepeating(1000);
-
+				});
 			}
 		});
 		snake.getPbSnake().addClickHandler(new ClickHandler() {
@@ -590,10 +601,77 @@ public class MainLayout extends Composite {
 	 * 
 	 */
 	protected void clearAsteroids() {
+		if (survivalTimer != null) {
+			survivalTimer.cancel();
+			survivalTimer = null;
+		}
 		for (Asteroid ast : asteroids) {
 			ast.getImage().removeFromParent();
 		}
 		asteroids.clear();
+		spaceAsteroids.clear();
+
+		for (BulletPowerUp pu : spacePowerUps) {
+			pu.image.removeFromParent();
+		}
+		spacePowerUps.clear();
+
+		for (Timer timer : activeExplosionTimers) {
+			timer.cancel();
+		}
+		activeExplosionTimers.clear();
+
+		for (Image exp : activeExplosions) {
+			exp.removeFromParent();
+		}
+		activeExplosions.clear();
+
+		stopSpaceSwayTimer();
+
+		for (Timer timer : activeLifeBannerTimers) {
+			timer.cancel();
+		}
+		activeLifeBannerTimers.clear();
+
+		for (Widget banner : activeLifeBanners) {
+			banner.removeFromParent();
+		}
+		activeLifeBanners.clear();
+	}
+
+	private void spawnSpaceWave() {
+		int rightGap = 0;
+
+		for (int group = 0; group < 3; group++) {
+			for (int slot = 0; slot < 3; slot++) {
+				int xPos = 735 + rightGap;
+				int yPos = generateGap();
+
+				Asteroid ast = new Asteroid();
+				ast.setRightStep(xPos);
+				ast.setTopStep(yPos);
+				ast.getImage().getElement().getStyle().setPosition(Position.ABSOLUTE);
+				mainCanvas.add(ast.getImage());
+				asteroids.add(ast);
+				spaceAsteroids.add(new SpaceAsteroid(ast));
+			}
+
+			rightGap += 140 * 3;
+		}
+	}
+
+	private void spawnTimedPowerUp() {
+		int bonus = POWER_UP_AMOUNTS[(int) (Math.random() * POWER_UP_AMOUNTS.length)];
+		int xPos = 735;
+		int yPos = generateGap();
+
+		Image puImg = new Image(resources.powerUp());
+		puImg.setPixelSize(32, 32);
+		puImg.getElement().getStyle().setPosition(Position.ABSOLUTE);
+		puImg.getElement().getStyle().setLeft(xPos, Unit.PX);
+		puImg.getElement().getStyle().setTop(yPos, Unit.PX);
+		mainCanvas.add(puImg);
+		spacePowerUps.add(new BulletPowerUp(puImg, bonus, xPos, yPos));
 	}
 
 	public void clearPacmanAssets() {
@@ -673,6 +751,409 @@ public class MainLayout extends Composite {
 
 	}
 
+	private void updateSpaceHud() {
+		ammoLabel.setText("Bullets: " + bulletsRemaining);
+		survivalLabel.setText("Survived: " + survivalSeconds + "s");
+		asteroidsLabel.setText("Asteroids: " + asteroidsDestroyed);
+	}
+
+	private void startSpaceLoops() {
+		if (t != null) {
+			t.cancel();
+		}
+		if (survivalTimer != null) {
+			survivalTimer.cancel();
+		}
+
+		survivalTimer = new Timer() {
+			@Override
+			public void run() {
+				survivalSeconds++;
+				updateSpaceHud();
+				if (survivalSeconds > 0 && survivalSeconds % 30 == 0) {
+					spawnTimedPowerUp();
+				}
+			}
+		};
+		survivalTimer.scheduleRepeating(1000);
+
+		t = new Timer() {
+			@Override
+			public void run() {
+				redrawSpace();
+			}
+		};
+		t.scheduleRepeating(100); // Smooth step ticks; base force scaled for ~10 ticks/sec
+
+		startSpaceSwayTimer();
+
+	}
+
+	private void resetSpaceGame(boolean restartLoops) {
+		clearAsteroids();
+		bulletsRemaining = INITIAL_BULLETS;
+		survivalSeconds = 0;
+		asteroidsDestroyed = 0;
+		extraLives = 0;
+		clearLifeCoinsFromHud();
+		updateSpaceHud();
+
+		sf.setRightStep(0);
+		sf.setTopStep(0);
+		sf.getImage().getElement().getStyle().setPosition(Position.ABSOLUTE);
+		sf.getImage().getElement().getStyle().setLeft(0, Unit.PX);
+		sf.getImage().getElement().getStyle().setTop(0, Unit.PX);
+
+		if (sf.getImage().getParent() == null) {
+			mainCanvas.add(sf.getImage().asWidget());
+		}
+		sf.setDistance(mainCanvas.getAbsoluteLeft());
+		spawnSpaceWave();
+
+		if (restartLoops) {
+			startSpaceLoops();
+		}
+
+	}
+
+	private void removeSpaceAsteroidRef(Asteroid target) {
+		for (int i = spaceAsteroids.size() - 1; i >= 0; i--) {
+			if (spaceAsteroids.get(i).asteroid == target) {
+				spaceAsteroids.remove(i);
+			}
+		}
+	}
+
+	private boolean isShipTouchingPowerUp(BulletPowerUp pu) {
+		int shipLeft = sf.getImage().getAbsoluteLeft();
+		int shipTop = sf.getImage().getAbsoluteTop();
+		int shipRight = shipLeft + sf.getImage().getOffsetWidth();
+		int shipBottom = shipTop + sf.getImage().getOffsetHeight();
+
+		int puLeft = pu.image.getAbsoluteLeft();
+		int puTop = pu.image.getAbsoluteTop();
+		int puRight = puLeft + pu.image.getOffsetWidth();
+		int puBottom = puTop + pu.image.getOffsetHeight();
+
+		return shipLeft < puRight && shipRight > puLeft && shipTop < puBottom && shipBottom > puTop;
+	}
+
+	private void redrawSpace() {
+		mainCanvas.getParent().getElement().setAttribute("style", "position: absolute; inset: 0px;background-position:"
+				+ sf.getDistance() + "px;background-repeat:repeat-x;");
+		sf.setDistance(sf.getDistance() - physics.getSpace());
+
+		int baseStep = Math.max(1, physics.getForce(3, false, false) / 10);
+
+		for (int i = spaceAsteroids.size() - 1; i >= 0; i--) {
+			SpaceAsteroid entry = spaceAsteroids.get(i);
+			int step = baseStep * 5;
+			entry.asteroid.moveX(-step);
+
+			if (entry.asteroid.getImage().getAbsoluteLeft() < 165) {
+				entry.asteroid.getImage().removeFromParent();
+				asteroids.remove(entry.asteroid);
+				spaceAsteroids.remove(i);
+				continue;
+			}
+
+			if (physics.checkCollision(sf, entry.asteroid)) {
+				if (extraLives > 0) {
+					respawnAfterExtraLife();
+					return;
+				}
+				if (t != null) {
+					t.cancel();
+				}
+				if (survivalTimer != null) {
+					survivalTimer.cancel();
+				}
+				stopSpaceSwayTimer();
+				int finalSeconds = survivalSeconds;
+				sf.getImage().removeFromParent();
+				showSpaceGameOverDialog(finalSeconds);
+				return;
+			}
+		}
+
+		int powerUpStep = baseStep * 5;
+		for (int i = spacePowerUps.size() - 1; i >= 0; i--) {
+			BulletPowerUp pu = spacePowerUps.get(i);
+			pu.moveX(-powerUpStep);
+
+			if (pu.image.getAbsoluteLeft() < 165) {
+				pu.image.removeFromParent();
+				spacePowerUps.remove(i);
+				continue;
+			}
+
+			if (isShipTouchingPowerUp(pu)) {
+				bulletsRemaining += pu.bulletBonus;
+				updateSpaceHud();
+				pu.image.removeFromParent();
+				spacePowerUps.remove(i);
+			}
+		}
+
+		if (spaceAsteroids.isEmpty() && spacePowerUps.isEmpty()) {
+			spawnSpaceWave();
+		}
+	}
+
+	private void spawnExplosion(int absLeft, int absTop, int astWidth, int astHeight) {
+		int size = 96;
+		int effectiveWidth = astWidth > 0 ? astWidth : 250;
+		int effectiveHeight = astHeight > 0 ? astHeight : 250;
+
+		int canvasLeft = mainCanvas.getAbsoluteLeft();
+		int canvasTop = mainCanvas.getAbsoluteTop();
+
+		int centerX = (absLeft - canvasLeft) + (effectiveWidth / 2);
+		int centerY = (absTop - canvasTop) + (effectiveHeight / 2);
+		int left = centerX - (size / 2);
+		int top = centerY - (size / 2);
+
+		Image explosion = new Image(resources.explosion());
+		explosion.setPixelSize(size, size);
+		explosion.getElement().getStyle().setPosition(Position.ABSOLUTE);
+		explosion.getElement().getStyle().setLeft(left, Unit.PX);
+		explosion.getElement().getStyle().setTop(top, Unit.PX);
+		explosion.getElement().getStyle().setProperty("pointerEvents", "none");
+		explosion.getElement().getStyle().setProperty("transition", "transform 1.8s ease-out, opacity 2s ease-out");
+		explosion.getElement().getStyle().setProperty("transform", "scale(0.65)");
+		explosion.getElement().getStyle().setProperty("opacity", "1");
+
+		mainCanvas.add(explosion);
+		activeExplosions.add(explosion);
+
+		// Kick off transition on next frame so CSS transition animates smoothly
+		com.google.gwt.core.client.Scheduler.get().scheduleDeferred(() -> {
+			if (explosion.isAttached()) {
+				explosion.getElement().getStyle().setProperty("transform", "scale(1.35)");
+				explosion.getElement().getStyle().setProperty("opacity", "0");
+			}
+		});
+
+		Timer removeTimer = new Timer() {
+			@Override
+			public void run() {
+				explosion.removeFromParent();
+				activeExplosions.remove(explosion);
+				activeExplosionTimers.remove(this);
+			}
+		};
+		activeExplosionTimers.add(removeTimer);
+		removeTimer.schedule(2000);
+	}
+
+	private void showSpaceGameOverDialog(int secondsSurvived) {
+		DialogBox gameOverBox = new DialogBox(false, true);
+		gameOverBox.setText("Game Over");
+		gameOverBox.setGlassEnabled(true);
+
+		VerticalPanel content = new VerticalPanel();
+		content.setSpacing(8);
+
+		content.add(new Label("Hit by an asteroid! Time survived: " + secondsSurvived + "s"));
+
+		String shareText = "I survived " + secondsSurvived + "s and exploded " + asteroidsDestroyed
+				+ " asteroids in Space Force on Ben's Java GWT Showcase! (PC)";
+		String currentUrl = Window.Location.getHref();
+		String encodedText = URL.encodeQueryString(shareText);
+		String encodedUrl = URL.encodeQueryString(currentUrl);
+
+		Button shareButton = new Button("Share");
+		shareButton.addClickHandler(event -> {
+			PopupPanel sharePopup = new PopupPanel(true);
+			VerticalPanel linksBox = new VerticalPanel();
+			linksBox.setSpacing(6);
+
+			Anchor shareWhatsApp = new Anchor("WhatsApp", true,
+					"https://wa.me/?text=" + URL.encodeQueryString(shareText + " " + currentUrl));
+			shareWhatsApp.getElement().setAttribute("target", "_blank");
+			shareWhatsApp.getElement().setAttribute("rel", "noopener noreferrer");
+
+			Anchor shareX = new Anchor("X", true,
+					"https://twitter.com/intent/tweet?text=" + encodedText + "&url=" + encodedUrl);
+			shareX.getElement().setAttribute("target", "_blank");
+			shareX.getElement().setAttribute("rel", "noopener noreferrer");
+
+			linksBox.add(shareWhatsApp);
+			linksBox.add(shareX);
+			sharePopup.setWidget(linksBox);
+			sharePopup.showRelativeTo(shareButton);
+		});
+
+		Button closeButton = new Button("Close");
+		closeButton.addClickHandler(event -> {
+			gameOverBox.hide();
+			resetSpaceGame(true);
+			com.google.gwt.core.client.Scheduler.get().scheduleDeferred(() -> {
+				if (sf != null && sf.getPbKeyboard() != null && sf.getPbKeyboard().isAttached()) {
+					sf.getPbKeyboard().setFocus(true);
+				}
+			});
+		});
+
+		HorizontalPanel actions = new HorizontalPanel();
+		actions.setSpacing(8);
+		actions.add(shareButton);
+		actions.add(closeButton);
+		content.add(actions);
+
+		gameOverBox.setWidget(content);
+		gameOverBox.center();
+		gameOverBox.show();
+	}
+
+	private void startSpaceSwayTimer() {
+		stopSpaceSwayTimer();
+		sf.resetVerticalMotion();
+		spaceSwayTimer = new Timer() {
+			@Override
+			public void run() {
+				if (sf != null && sf.getImage() != null && sf.getImage().isAttached()) {
+					sf.updateSway(0.025);
+				}
+			}
+		};
+		spaceSwayTimer.scheduleRepeating(25);
+	}
+
+	private void stopSpaceSwayTimer() {
+		if (spaceSwayTimer != null) {
+			spaceSwayTimer.cancel();
+			spaceSwayTimer = null;
+		}
+		if (sf != null) {
+			sf.resetVerticalMotion();
+		}
+	}
+
+	private void addLifeCoinToHud() {
+		Image coin = new Image(resources.extraLife());
+		coin.setPixelSize(28, 28);
+		coin.getElement().getStyle().setProperty("marginLeft", "3px");
+		coin.getElement().getStyle().setProperty("marginRight", "3px");
+		lifeCoinImages.add(coin);
+		lifePanel.add(coin);
+	}
+
+	private void removeLifeCoinFromHud() {
+		if (!lifeCoinImages.isEmpty()) {
+			Image coin = lifeCoinImages.remove(lifeCoinImages.size() - 1);
+			coin.removeFromParent();
+		}
+	}
+
+	private void clearLifeCoinsFromHud() {
+		for (Image coin : lifeCoinImages) {
+			coin.removeFromParent();
+		}
+		lifeCoinImages.clear();
+		lifePanel.clear();
+	}
+
+	private void spawnExtraLifeBanner() {
+		Label banner = new Label("Extra Life");
+		banner.getElement().getStyle().setPosition(Position.ABSOLUTE);
+		banner.getElement().getStyle().setLeft(140, Unit.PX);
+		banner.getElement().getStyle().setTop(140, Unit.PX);
+		banner.getElement().getStyle().setProperty("pointerEvents", "none");
+		banner.getElement().getStyle().setProperty("fontSize", "36px");
+		banner.getElement().getStyle().setProperty("fontWeight", "bold");
+		banner.getElement().getStyle().setProperty("fontFamily", "sans-serif");
+		banner.getElement().getStyle().setProperty("color", "#FFD54F");
+		banner.getElement().getStyle().setProperty("textShadow", "0 2px 10px rgba(0, 0, 0, 0.85)");
+		banner.getElement().getStyle().setProperty("transition", "transform 2s ease-in-out, opacity 2s ease-in-out");
+		banner.getElement().getStyle().setProperty("transform", "translateY(25px) scale(0.9)");
+		banner.getElement().getStyle().setProperty("opacity", "0");
+
+		mainCanvas.add(banner);
+		activeLifeBanners.add(banner);
+
+		// Transition in, glide across, and fade out over the 2-second window
+		com.google.gwt.core.client.Scheduler.get().scheduleDeferred(() -> {
+			if (banner.isAttached()) {
+				banner.getElement().getStyle().setProperty("transform", "translateY(-35px) scale(1.12)");
+				banner.getElement().getStyle().setProperty("opacity", "1");
+			}
+		});
+
+		com.google.gwt.core.client.Scheduler.get().scheduleFixedDelay(() -> {
+			if (banner.isAttached()) {
+				banner.getElement().getStyle().setProperty("opacity", "0");
+			}
+			return false;
+		}, 1200);
+
+		Timer removeTimer = new Timer() {
+			@Override
+			public void run() {
+				banner.removeFromParent();
+				activeLifeBanners.remove(banner);
+				activeLifeBannerTimers.remove(this);
+			}
+		};
+		activeLifeBannerTimers.add(removeTimer);
+		removeTimer.schedule(2000);
+	}
+
+	private void respawnAfterExtraLife() {
+		extraLives--;
+		removeLifeCoinFromHud();
+
+		// Clear active wave/powerups/explosions/sway while preserving survivalSeconds &
+		// asteroidsDestroyed
+		if (t != null) {
+			t.cancel();
+		}
+		for (Asteroid ast : asteroids) {
+			ast.getImage().removeFromParent();
+		}
+		asteroids.clear();
+		spaceAsteroids.clear();
+
+		for (BulletPowerUp pu : spacePowerUps) {
+			pu.image.removeFromParent();
+		}
+		spacePowerUps.clear();
+
+		for (Timer timer : activeExplosionTimers) {
+			timer.cancel();
+		}
+		activeExplosionTimers.clear();
+
+		for (Image exp : activeExplosions) {
+			exp.removeFromParent();
+		}
+		activeExplosions.clear();
+
+		stopSpaceSwayTimer();
+
+		bulletsRemaining = INITIAL_BULLETS;
+		updateSpaceHud();
+
+		sf.setRightStep(0);
+		sf.setTopStep(0);
+		sf.getImage().getElement().getStyle().setPosition(Position.ABSOLUTE);
+		sf.getImage().getElement().getStyle().setLeft(0, Unit.PX);
+		sf.getImage().getElement().getStyle().setTop(0, Unit.PX);
+
+		if (sf.getImage().getParent() == null) {
+			mainCanvas.add(sf.getImage().asWidget());
+		}
+		sf.setDistance(mainCanvas.getAbsoluteLeft());
+		spawnSpaceWave();
+		startSpaceLoops();
+
+		com.google.gwt.core.client.Scheduler.get().scheduleDeferred(() -> {
+			if (sf != null && sf.getPbKeyboard() != null && sf.getPbKeyboard().isAttached()) {
+				sf.getPbKeyboard().setFocus(true);
+			}
+		});
+	}
+
 	/**
 	 * Resets Pacman to grid[1, 1] facing RIGHT awaiting input.
 	 * 
@@ -747,62 +1228,142 @@ public class MainLayout extends Composite {
 			sf.getRightButton().setEnabled(false);
 			controlPanel.add(hp);
 			controlPanel.add(sf.getPbKeyboard());
-			sf.getPbKeyboard().addKeyUpHandler(new KeyUpHandler() {
 
-				@Override
-				public void onKeyUp(KeyUpEvent event) {
-					/*
-					 * if (event.getNativeKeyCode() == KeyCodes.KEY_RIGHT) {
-					 * sf.moveX(physics.getForce(sf.getMass(), false, false)); } if
-					 * (event.getNativeKeyCode() == KeyCodes.KEY_LEFT) {
-					 * sf.moveX(-physics.getForce(sf.getMass(), false, false)); }
-					 */
+			if (!spaceHandlersInitialized) {
+				sf.getUpButton().addMouseDownHandler(event -> sf.setHoldingUp(true));
+				sf.getUpButton().addMouseUpHandler(event -> sf.setHoldingUp(false));
+				sf.getUpButton().addMouseOutHandler(event -> sf.setHoldingUp(false));
+
+				sf.getDownButton().addMouseDownHandler(event -> sf.setHoldingDown(true));
+				sf.getDownButton().addMouseUpHandler(event -> sf.setHoldingDown(false));
+				sf.getDownButton().addMouseOutHandler(event -> sf.setHoldingDown(false));
+
+				sf.getPbKeyboard().addKeyDownHandler(event -> {
 					if (event.getNativeKeyCode() == KeyCodes.KEY_UP) {
-						sf.moveY(-physics.getForce(sf.getMass(), false, false));
+						sf.setHoldingUp(true);
+					} else if (event.getNativeKeyCode() == KeyCodes.KEY_DOWN) {
+						sf.setHoldingDown(true);
 					}
-					if (event.getNativeKeyCode() == KeyCodes.KEY_DOWN) {
-						sf.moveY(physics.getForce(sf.getMass(), false, false));
-					}
-					if (event.getNativeKeyCode() == KeyCodes.KEY_SPACE) {
-						Bullet bullet = new Bullet();
-						bullet.setTopStep(sf.getTopStep());
-						mainCanvas.add(bullet.getImage().asWidget());
-						Timer tBullet = new Timer() {
+				});
 
-							@Override
-							public void run() {
-								if (sf.getImage().isAttached()) {
-									bullet.moveX(physics.getForce(bullet.getMass(), false, false));
-								}
-								for (Asteroid asteroid : asteroids) {
-									if (physics.checkCollision(bullet, asteroid)) {
-										asteroid.setHits(1);
-										if (asteroid.getHits() == asteroid.getMass()) {
-											asteroid.getImage().removeFromParent();
-											asteroids.remove(asteroid);
+				sf.getPbKeyboard().addKeyUpHandler(new KeyUpHandler() {
+
+					@Override
+					public void onKeyUp(KeyUpEvent event) {
+						/*
+						 * if (event.getNativeKeyCode() == KeyCodes.KEY_RIGHT) {
+						 * sf.moveX(physics.getForce(sf.getMass(), false, false)); } if
+						 * (event.getNativeKeyCode() == KeyCodes.KEY_LEFT) {
+						 * sf.moveX(-physics.getForce(sf.getMass(), false, false)); }
+						 */
+						if (event.getNativeKeyCode() == KeyCodes.KEY_UP) {
+							sf.setHoldingUp(false);
+						}
+						if (event.getNativeKeyCode() == KeyCodes.KEY_DOWN) {
+							sf.setHoldingDown(false);
+						}
+						if (event.getNativeKeyCode() == KeyCodes.KEY_SPACE) {
+							if (bulletsRemaining <= 0) {
+								return; // Out of ammo: navigate with UP/DOWN until picking up a power-up
+							}
+							bulletsRemaining--;
+							updateSpaceHud();
+
+							Bullet bullet = new Bullet();
+							bullet.setTopStep(sf.getTopStep());
+							mainCanvas.add(bullet.getImage().asWidget());
+							Timer tBullet = new Timer() {
+								@Override
+								public void run() {
+									if (sf.getImage().isAttached()) {
+										bullet.moveX(physics.getForce(bullet.getMass(), false, false));
+									}
+									for (int i = asteroids.size() - 1; i >= 0; i--) {
+										Asteroid asteroid = asteroids.get(i);
+										if (physics.checkCollision(bullet, asteroid)) {
+											int hitLeft = asteroid.getImage().getAbsoluteLeft();
+											int hitTop = asteroid.getImage().getAbsoluteTop();
+											int hitWidth = asteroid.getImage().getOffsetWidth();
+											int hitHeight = asteroid.getImage().getOffsetHeight();
+
+											asteroid.setHits(1);
+											asteroid.setHits(1);
+											if (asteroid.getHits() >= asteroid.getMass()) {
+												asteroid.getImage().removeFromParent();
+												asteroids.remove(i);
+												removeSpaceAsteroidRef(asteroid);
+												asteroidsDestroyed++;
+												updateSpaceHud();
+												spawnExplosion(hitLeft, hitTop, hitWidth, hitHeight);
+
+												if (asteroidsDestroyed > 0 && asteroidsDestroyed % 50 == 0) {
+													extraLives++;
+													addLifeCoinToHud();
+													spawnExtraLifeBanner();
+												}
+											}
+											cancel();
+											destroy();
+											return;
 										}
+									}
+									if (bullet.getImage().getAbsoluteLeft() > 1200) {
 										cancel();
 										destroy();
 									}
 								}
-								if (bullet.getImage().getAbsoluteLeft() > 1200) {
-									cancel();
-									destroy();
+
+								private void destroy() {
+									bullet.getImage().removeFromParent();
 								}
-
-							}
-
-							private void destroy() {
-								bullet.getImage().removeFromParent();
-							}
-						};
-						tBullet.scheduleRepeating(50);
+							};
+							tBullet.scheduleRepeating(50);
+						}
 					}
-				}
-			});
+				});
+				spaceHandlersInitialized = true;
+			}
 
 			controlPanel.setCellHorizontalAlignment(hp, HasHorizontalAlignment.ALIGN_CENTER);
 			controlPanel.setCellHorizontalAlignment(sf.getUpButton(), HasHorizontalAlignment.ALIGN_CENTER);
+			ammoLabel.getElement().getStyle().setProperty("textAlign", "center");
+			ammoLabel.getElement().getStyle().setProperty("fontSize", "20px");
+			ammoLabel.getElement().getStyle().setProperty("fontWeight", "bold");
+			ammoLabel.getElement().getStyle().setProperty("marginTop", "10px");
+			ammoLabel.getElement().getStyle().setProperty("fontFamily", "sans-serif");
+			ammoLabel.getElement().getStyle().setProperty("color", "#FFFFFF");
+
+			survivalLabel.getElement().getStyle().setProperty("textAlign", "center");
+			survivalLabel.getElement().getStyle().setProperty("fontSize", "20px");
+			survivalLabel.getElement().getStyle().setProperty("fontWeight", "bold");
+			survivalLabel.getElement().getStyle().setProperty("marginTop", "6px");
+			survivalLabel.getElement().getStyle().setProperty("fontFamily", "sans-serif");
+			survivalLabel.getElement().getStyle().setProperty("color", "#FFFFFF");
+
+			Label legendLabel = new Label("Shoot: Space bar  •  Power-up: Every 30s");
+			legendLabel.getElement().getStyle().setProperty("textAlign", "center");
+			legendLabel.getElement().getStyle().setProperty("fontSize", "13px");
+			legendLabel.getElement().getStyle().setProperty("fontWeight", "normal");
+			legendLabel.getElement().getStyle().setProperty("marginTop", "10px");
+			legendLabel.getElement().getStyle().setProperty("fontFamily", "sans-serif");
+			legendLabel.getElement().getStyle().setProperty("color", "#FFFFFF");
+			legendLabel.getElement().getStyle().setProperty("opacity", "0.9");
+
+			asteroidsLabel.getElement().getStyle().setProperty("textAlign", "center");
+			asteroidsLabel.getElement().getStyle().setProperty("fontSize", "20px");
+			asteroidsLabel.getElement().getStyle().setProperty("fontWeight", "bold");
+			asteroidsLabel.getElement().getStyle().setProperty("marginTop", "6px");
+			asteroidsLabel.getElement().getStyle().setProperty("fontFamily", "sans-serif");
+			asteroidsLabel.getElement().getStyle().setProperty("color", "#FFFFFF");
+
+			lifePanel.getElement().getStyle().setProperty("marginTop", "8px");
+
+			controlPanel.add(ammoLabel);
+			controlPanel.add(survivalLabel);
+			controlPanel.add(asteroidsLabel);
+			controlPanel.add(legendLabel);
+			controlPanel.add(lifePanel);
+			controlPanel.setCellHorizontalAlignment(lifePanel, HasHorizontalAlignment.ALIGN_CENTER);
 
 		} else if (mode.equalsIgnoreCase(SNAKE)) {
 
