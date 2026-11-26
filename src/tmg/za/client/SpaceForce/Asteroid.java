@@ -8,14 +8,19 @@ import com.google.gwt.user.client.ui.Image;
 import tmg.za.shared.Movable;
 import tmg.za.shared.Physics;
 
+/**
+ * Asteroid class
+ */
 public class Asteroid extends Movable {
 
 	tmg.za.client.Resources.Resources resources = GWT.create(tmg.za.client.Resources.Resources.class);
 	Physics physics = new Physics();
 	int hits = 0;
 
+	/**
+	 * Asteroid constructor
+	 */
 	public Asteroid() {
-		// image.setResource(resources.asteroid());
 		image = new Image(resources.asteroid());
 		mass = 3;
 		rightStep = 0;
@@ -45,10 +50,16 @@ public class Asteroid extends Movable {
 		return image;
 	}
 
+	/**
+	 * @return hits
+	 */
 	public int getHits() {
 		return hits;
 	}
 
+	/**
+	 * @param hits
+	 */
 	public void setHits(int hits) {
 		this.hits += hits;
 	}

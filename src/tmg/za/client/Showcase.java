@@ -21,7 +21,6 @@ public class Showcase implements EntryPoint {
 		MainLayout layout = new MainLayout();
 		root.add(layout);
 		root.setWidgetLeftRight(layout, 0, Unit.PX, 0, Unit.PX);
-		// root.setWidgetTopBottom(layout, 0, Unit.PX, 28, Unit.PX);
 
 		FlowPanel footer = new FlowPanel();
 		footer.getElement().setId("showcaseFooter");

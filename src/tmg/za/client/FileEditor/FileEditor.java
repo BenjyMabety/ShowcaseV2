@@ -5,7 +5,7 @@ import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.PushButton;
 
 /**
- * 
+ * File editor (Not deployed)
  */
 public class FileEditor {
 	tmg.za.client.Resources.Resources resources = GWT.create(tmg.za.client.Resources.Resources.class);
@@ -17,7 +17,7 @@ public class FileEditor {
 	private PushButton newButton;
 
 	/**
-	 * 
+	 * File editor constructor
 	 */
 	public FileEditor() {
 		Image editImage = new Image(resources.edit());
@@ -38,7 +38,7 @@ public class FileEditor {
 	}
 
 	/**
-	 * @return
+	 * @return pbFileEditor
 	 */
 	public PushButton getPbFileEditor() {
 		return pbFileEditor;
@@ -52,7 +52,7 @@ public class FileEditor {
 	}
 
 	/**
-	 * @return
+	 * @return editButton
 	 */
 	public PushButton getEditButton() {
 		return editButton;
@@ -66,7 +66,7 @@ public class FileEditor {
 	}
 
 	/**
-	 * @return
+	 * @return loadButton
 	 */
 	public PushButton getLoadButton() {
 		return loadButton;
@@ -80,7 +80,7 @@ public class FileEditor {
 	}
 
 	/**
-	 * @return
+	 * @return saveButton
 	 */
 	public PushButton getSaveButton() {
 		return saveButton;
@@ -94,7 +94,7 @@ public class FileEditor {
 	}
 
 	/**
-	 * @return
+	 * @return newButton
 	 */
 	public PushButton getNewButton() {
 		return newButton;

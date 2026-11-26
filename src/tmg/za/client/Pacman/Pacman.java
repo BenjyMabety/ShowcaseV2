@@ -12,13 +12,16 @@ import tmg.za.shared.Direction;
 import tmg.za.shared.Movable;
 import tmg.za.shared.Physics;
 
+/**
+ * Pacman Class
+ */
 public class Pacman extends Movable {
 
 	tmg.za.client.Resources.Resources resources = GWT.create(tmg.za.client.Resources.Resources.class);
 	Physics physics = new Physics();
 	private String DIRECTION_PRESSED = "";
 	private boolean isClosedMouth = false;
-	private com.google.gwt.user.client.Timer chompTimer;
+	private Timer chompTimer;
 
 	PushButton pbPacman;
 	Image pac_right;
@@ -49,12 +52,19 @@ public class Pacman extends Movable {
 		fruit = new Image(resources.fruit());
 	}
 
+	/**
+	 * @param res
+	 * @return img
+	 */
 	private Image createSizedImage(com.google.gwt.resources.client.ImageResource res) {
 		Image img = new Image(res);
 		img.setPixelSize(PACMAN_SIZE, PACMAN_SIZE);
 		return img;
 	}
 
+	/**
+	 * 
+	 */
 	public void updatePosition() {
 		Image current = getImage();
 		if (current != null) {
@@ -163,14 +173,23 @@ public class Pacman extends Movable {
 		}
 	}
 
+	/**
+	 * @return pbPacman
+	 */
 	public PushButton getPbPacman() {
 		return pbPacman;
 	}
 
+	/**
+	 * @return DIRECTION_PRESSED
+	 */
 	public String getDirection() {
 		return DIRECTION_PRESSED;
 	}
 
+	/**
+	 * @param direction
+	 */
 	public void setDirection(String direction) {
 		DIRECTION_PRESSED = direction;
 		updatePosition();

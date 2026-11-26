@@ -18,6 +18,9 @@ import tmg.za.shared.Movable;
 import tmg.za.shared.Physics;
 import tmg.za.shared.StringUtils;
 
+/**
+ * Snake class
+ */
 public class Snake extends Movable {
 	tmg.za.client.Resources.Resources resources = GWT.create(tmg.za.client.Resources.Resources.class);
 	Physics physics = new Physics();
@@ -33,15 +36,15 @@ public class Snake extends Movable {
 	private double lastTopVal = 0;
 	private ArrayList<Snake> children = new ArrayList<Snake>();
 
+	/**
+	 * Snake construction
+	 */
 	public Snake() {
 
 		rightStep = 0;
 		topStep = 0;
 		mass = 3;
 		distance = 0;
-		/*
-		 * childTop = 0.0; childLeft = 0.0;
-		 */
 
 		pbSnake = new PushButton("Snake");
 		image = new Image(resources.snake());
@@ -199,7 +202,7 @@ public class Snake extends Movable {
 	}
 
 	/**
-	 * @return
+	 * @return pbSnake
 	 */
 	public PushButton getPbSnake() {
 		return pbSnake;
@@ -213,7 +216,7 @@ public class Snake extends Movable {
 	}
 
 	/**
-	 * @return
+	 * @return DIRECTION_PRESSED
 	 */
 	public String getDirection() {
 		return DIRECTION_PRESSED;
@@ -260,7 +263,7 @@ public class Snake extends Movable {
 	}
 
 	/**
-	 * @return
+	 * @return head
 	 */
 	public boolean isHead() {
 		return head;
@@ -298,7 +301,7 @@ public class Snake extends Movable {
 	}
 
 	/**
-	 * @return
+	 * @return Snake
 	 */
 	private Snake getLastChild() {
 		if (children.isEmpty()) {
@@ -309,7 +312,7 @@ public class Snake extends Movable {
 	}
 
 	/**
-	 * @return
+	 * @return lastLeft
 	 */
 	public String getLastLeft() {
 		return lastLeft;
@@ -323,7 +326,7 @@ public class Snake extends Movable {
 	}
 
 	/**
-	 * @return
+	 * @return lastTop
 	 */
 	public String getLastTop() {
 		return lastTop;
@@ -337,7 +340,7 @@ public class Snake extends Movable {
 	}
 
 	/**
-	 * @return
+	 * @return lastLeftVal
 	 */
 	public double getLastLeftVal() {
 		return lastLeftVal;
@@ -351,7 +354,7 @@ public class Snake extends Movable {
 	}
 
 	/**
-	 * @return
+	 * @return lastTopVal
 	 */
 	public double getLastTopVal() {
 		return lastTopVal;
@@ -364,6 +367,9 @@ public class Snake extends Movable {
 		this.lastTopVal = lastTopVal;
 	}
 
+	/**
+	 * 
+	 */
 	public void move() {
 		// Cascade positions from back to front
 		for (int i = children.size() - 1; i >= 0; i--) {
@@ -385,23 +391,7 @@ public class Snake extends Movable {
 	}
 
 	/**
-	 * @param child
-	 * @return
-	 */
-	private Snake getParent(Snake child) {
-		if (children.isEmpty()) {
-			return this;
-		}
-
-		int index = children.indexOf(child);
-		if (index > 0) {
-			return children.get(index - 1);
-		}
-		return this;
-	}
-
-	/**
-	 * @return
+	 * @return children
 	 */
 	public ArrayList<Snake> getChildren() {
 		return children;
@@ -415,7 +405,7 @@ public class Snake extends Movable {
 	}
 
 	/**
-	 * @return
+	 * @return PREVIOUS_DIRECTION
 	 */
 	public String getPreviousDirection() {
 		return PREVIOUS_DIRECTION;

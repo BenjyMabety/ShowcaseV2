@@ -66,14 +66,14 @@ public interface Resources extends ClientBundle {
 	@Source("pac_closed.png")
 	ImageResource pac_closed();
 
-	@Source("pac_right.png")
-	ImageResource pac_right();
-
 	@Source("pac_down.png")
 	ImageResource pac_down();
 
 	@Source("pac_left.png")
 	ImageResource pac_left();
+
+	@Source("pac_right.png")
+	ImageResource pac_right();
 
 	@Source("pac_up.png")
 	ImageResource pac_up();

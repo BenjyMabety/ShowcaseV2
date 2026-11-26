@@ -161,11 +161,17 @@ public class GuessingGame extends DialogBox {
 		}
 	}
 
+	/**
+	 * @return share text
+	 */
 	private String buildShareText() {
 		return "I guessed the Magic Number (" + (int) magic + ") in " + attempts + "/" + maxAttempts
 				+ " attempts on Ben's Java GWT Showcase!";
 	}
 
+	/**
+	 * 
+	 */
 	private void openShareMenu() {
 		String rawText = buildShareText();
 		String currentUrl = Window.Location.getHref();
@@ -194,7 +200,7 @@ public class GuessingGame extends DialogBox {
 	}
 
 	/**
-	 * @return
+	 * @return pbGuess
 	 */
 	public PushButton getPbGuess() {
 		return pbGuess;

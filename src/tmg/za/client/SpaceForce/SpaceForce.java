@@ -11,6 +11,9 @@ import com.google.gwt.user.client.ui.PushButton;
 import tmg.za.shared.Movable;
 import tmg.za.shared.Physics;
 
+/**
+ * SpaceForce class
+ */
 public class SpaceForce extends Movable {
 
 	tmg.za.client.Resources.Resources resources = GWT.create(tmg.za.client.Resources.Resources.class);
@@ -25,23 +28,16 @@ public class SpaceForce extends Movable {
 	private static final double ACCEL_Y = 1400.0; // px/sec^2 when held
 	private static final double SWAY_DAMPING = 7.5; // higher = snappier settle, lower = longer glide
 
+	/**
+	 * SpaceForce constructor
+	 */
 	public SpaceForce() {
-		// image.setResource(resources.ship());
 		image = new Image(resources.ship());
 		rightStep = 0;
 		topStep = 0;
 		mass = 1;
 		pbSpaceForce = new PushButton("Space Force");
-		/*
-		 * getRightButton().addClickHandler(new ClickHandler() {
-		 * 
-		 * @Override public void onClick(ClickEvent event) {
-		 * moveX(physics.getForce(getMass(), false, false)); } });
-		 * getLeftButton().addClickHandler(new ClickHandler() {
-		 * 
-		 * @Override public void onClick(ClickEvent event) {
-		 * moveX(-physics.getForce(getMass(), false, false)); } });
-		 */
+
 		getUpButton().addClickHandler(new ClickHandler() {
 
 			@Override
@@ -60,19 +56,31 @@ public class SpaceForce extends Movable {
 		});
 	}
 
+	/**
+	 * @param holdingUp
+	 */
 	public void setHoldingUp(boolean holdingUp) {
 		this.holdingUp = holdingUp;
 	}
 
+	/**
+	 * @param holdingDown
+	 */
 	public void setHoldingDown(boolean holdingDown) {
 		this.holdingDown = holdingDown;
 	}
 
+	/**
+	 * 
+	 */
 	public void clearVerticalInput() {
 		this.holdingUp = false;
 		this.holdingDown = false;
 	}
 
+	/**
+	 * 
+	 */
 	public void resetVerticalMotion() {
 		this.holdingUp = false;
 		this.holdingDown = false;
@@ -119,7 +127,7 @@ public class SpaceForce extends Movable {
 	}
 
 	/**
-	 * @return
+	 * @return pbSpaceForce
 	 */
 	public PushButton getPbSpaceForce() {
 		return pbSpaceForce;
@@ -154,7 +162,7 @@ public class SpaceForce extends Movable {
 	}
 
 	/**
-	 * @return
+	 * @return distance
 	 */
 	public int getDistance() {
 		return distance;
@@ -169,7 +177,6 @@ public class SpaceForce extends Movable {
 
 	@Override
 	public Image getImage() {
-		// TODO Auto-generated method stub
 		return image;
 	}
 

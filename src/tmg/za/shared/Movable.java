@@ -5,6 +5,9 @@ import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.PushButton;
 
+/**
+ * Base class for movable objects
+ */
 public abstract class Movable extends Composite {
 
 	tmg.za.client.Resources.Resources resources = GWT.create(tmg.za.client.Resources.Resources.class);
@@ -32,35 +35,35 @@ public abstract class Movable extends Composite {
 	protected double lastTopVal = 0;
 
 	/**
-	 * @return
+	 * @return upButton
 	 */
 	public PushButton getUpButton() {
 		return upButton;
 	}
 
 	/**
-	 * @return
+	 * @return downButton
 	 */
 	public PushButton getDownButton() {
 		return downButton;
 	}
 
 	/**
-	 * @return
+	 * @return leftButton
 	 */
 	public PushButton getLeftButton() {
 		return leftButton;
 	}
 
 	/**
-	 * @return
+	 * @return rightButton
 	 */
 	public PushButton getRightButton() {
 		return rightButton;
 	}
 
 	/**
-	 * @return
+	 * @return pbKeyboard
 	 */
 	public PushButton getPbKeyboard() {
 		return pbKeyboard;
@@ -71,55 +74,97 @@ public abstract class Movable extends Composite {
 	 */
 	public abstract void moveX(int value);
 
+	/**
+	 * @param value
+	 */
 	public abstract void moveY(int value);
 
+	/**
+	 * @return Image
+	 */
 	public abstract Image getImage();
 
+	/**
+	 * @return mass
+	 */
 	public int getMass() {
 		return mass;
 	}
 
+	/**
+	 * @param mass
+	 */
 	public void setMass(int mass) {
 		this.mass = mass;
 	}
 
+	/**
+	 * @return rightStep
+	 */
 	public int getRightStep() {
 		return rightStep;
 	}
 
+	/**
+	 * @param rightStep
+	 */
 	public void setRightStep(int rightStep) {
 		this.rightStep = rightStep;
 	}
 
+	/**
+	 * @return topStep
+	 */
 	public int getTopStep() {
 		return topStep;
 	}
 
+	/**
+	 * @param topStep
+	 */
 	public void setTopStep(int topStep) {
 		this.topStep = topStep;
 	}
 
+	/**
+	 * @return distance
+	 */
 	public int getDistance() {
 		return distance;
 	}
 
+	/**
+	 * @param distance
+	 */
 	public void setDistance(int distance) {
 		this.distance = distance;
 	}
 
 	// Added Explicit Getters and Setters for shared tracking logic
+	/**
+	 * @return lastLeftVal
+	 */
 	public double getLastLeftVal() {
 		return lastLeftVal;
 	}
 
+	/**
+	 * @param lastLeftVal
+	 */
 	public void setLastLeftVal(double lastLeftVal) {
 		this.lastLeftVal = lastLeftVal;
 	}
 
+	/**
+	 * @return lastTopVal
+	 */
 	public double getLastTopVal() {
 		return lastTopVal;
 	}
 
+	/**
+	 * @param lastTopVal
+	 */
 	public void setLastTopVal(double lastTopVal) {
 		this.lastTopVal = lastTopVal;
 	}

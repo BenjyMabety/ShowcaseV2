@@ -16,6 +16,9 @@ public class Physics {
 	private boolean friction = true;
 	private int space = 100;
 
+	/**
+	 * No arg nor body constructor
+	 */
 	public Physics() {
 	}
 
@@ -39,7 +42,7 @@ public class Physics {
 	}
 
 	/**
-	 * @return
+	 * @return gravity
 	 */
 	public int getGravity() {
 		return gravity;
@@ -53,7 +56,7 @@ public class Physics {
 	}
 
 	/**
-	 * @return
+	 * @return friction
 	 */
 	public boolean isFriction() {
 		return friction;
@@ -67,7 +70,7 @@ public class Physics {
 	}
 
 	/**
-	 * @return
+	 * @return space
 	 */
 	public int getSpace() {
 		return space;
@@ -102,6 +105,10 @@ public class Physics {
 		return box1.left < box2.right && box1.right > box2.left && box1.top < box2.bottom && box1.bottom > box2.top;
 	}
 
+	/**
+	 * @param movable
+	 * @return Box
+	 */
 	private Box createHitbox(Movable movable) {
 		int width = movable.getImage().getOffsetWidth();
 		int height = movable.getImage().getOffsetHeight();
@@ -137,12 +144,21 @@ public class Physics {
 		return new Box(left, top, right, bottom);
 	}
 
+	/**
+	 * Box class
+	 */
 	private static class Box {
 		final int left;
 		final int top;
 		final int right;
 		final int bottom;
 
+		/**
+		 * @param left
+		 * @param top
+		 * @param right
+		 * @param bottom
+		 */
 		Box(int left, int top, int right, int bottom) {
 			this.left = left;
 			this.top = top;
@@ -150,16 +166,4 @@ public class Physics {
 			this.bottom = bottom;
 		}
 	}
-
-	private int getHitboxInset(Movable m) {
-		String className = m.getClass().getSimpleName();
-		if ("Asteroid".equals(className)) {
-			return 18;
-		}
-		if ("SpaceForce".equals(className)) {
-			return 10;
-		}
-		return 4;
-	}
-
 }

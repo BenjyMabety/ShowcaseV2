@@ -6,11 +6,17 @@ import com.google.gwt.user.client.ui.Image;
 import tmg.za.shared.Movable;
 import tmg.za.shared.Physics;
 
+/**
+ * Fruit class
+ */
 public class Fruit extends Movable {
 
 	tmg.za.client.Resources.Resources resources = GWT.create(tmg.za.client.Resources.Resources.class);
 	Physics physics = new Physics();
 
+	/**
+	 * Fruit constructor
+	 */
 	public Fruit() {
 		image = new Image(resources.fruit());
 		mass = 3;
