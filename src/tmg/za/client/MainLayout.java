@@ -170,7 +170,12 @@ public class MainLayout extends Composite {
 
 	public MainLayout() {
 		initWidget(uiBinder.createAndBindUi(this));
-		Window.addResizeHandler(event -> applyHeaderViewportStyle(event.getWidth()));
+		Window.addResizeHandler(event -> {
+			applyHeaderViewportStyle(event.getWidth());
+			if (controlPanel != null && controlPanel.isVisible() && sf != null) {
+				applySpaceBackgroundStyle();
+			}
+		});
 		// headerLabel.getElement().setAttribute("style", "font-weight:
 		// bold;font-size:100px;text-align:center;");
 		// login = new Login();
@@ -839,8 +844,7 @@ public class MainLayout extends Composite {
 	}
 
 	private void redrawSpace() {
-		mainCanvas.getParent().getElement().setAttribute("style", "position: absolute; inset: 0px;background-position:"
-				+ sf.getDistance() + "px;background-repeat:repeat-x;");
+		applySpaceBackgroundStyle();
 		sf.setDistance(sf.getDistance() - physics.getSpace());
 
 		int baseStep = Math.max(1, physics.getForce(3, false, false) / 10);
@@ -1938,6 +1942,29 @@ public class MainLayout extends Composite {
 			getElement().removeClassName(enabled ? style.enabledBall() : style.enabledSpace());
 		}
 
+	}
+
+	private native boolean isBrowserFullScreen() /*-{
+		var doc = $doc;
+		var apiFull = Boolean(doc.fullscreenElement
+				|| doc.webkitFullscreenElement || doc.mozFullScreenElement
+				|| doc.msFullscreenElement);
+		if (apiFull) {
+			return true;
+		}
+		var win = $wnd;
+		var scr = win.screen;
+		if (scr && scr.height && win.innerHeight) {
+			return win.innerHeight >= scr.height * 0.92
+					&& win.innerWidth >= scr.width * 0.95;
+		}
+		return false;
+	}-*/;
+
+	private void applySpaceBackgroundStyle() {
+		String bgPosY = isBrowserFullScreen() ? "125px" : "50%";
+		mainCanvas.getParent().getElement().setAttribute("style", "position: absolute; inset: 0px;background-position:"
+				+ sf.getDistance() + "px " + bgPosY + ";background-repeat:repeat-x;");
 	}
 
 	private void applyHeaderViewportStyle(int clientWidth) {

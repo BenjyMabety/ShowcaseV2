@@ -1,1 +1,7 @@
-/target/
+gwt-unitCache/
+**/gwt-unitCache/
+.gwt/
+**/gwt-extra/
+war/showcase/
+target/
+bin/
