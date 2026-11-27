@@ -1,4 +1,4 @@
-# 🚀 ShowcaseV2 - https://github.com/BenjyMabety/ShowcaseV2
+# 🚀 ShowcaseV2
 
 App deployed on github pages: <a href="https://benjymabety.github.io/ShowcaseV2/" target="_blank" rel="noopener noreferrer">https://benjymabety.github.io/ShowcaseV2/</a>
 
