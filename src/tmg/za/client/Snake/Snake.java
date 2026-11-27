@@ -168,7 +168,7 @@ public class Snake extends Movable {
 
 		if (getDirection().equalsIgnoreCase(Direction.DOWN)) {
 			if (!getPreviousDirection().equals(Direction.UP)) {
-				if (image.getAbsoluteTop() < 700) {
+				if (image.getAbsoluteTop() < 650) {
 					image.getElement().getStyle().setPosition(Position.ABSOLUTE);
 					image.getElement().getStyle().setTop(getTopStep() + value, Unit.PX);
 					setTopStep(getTopStep() + value);
@@ -234,28 +234,24 @@ public class Snake extends Movable {
 	 * @return
 	 */
 	public boolean eat(Movable fruit) {
-		// 1. Extract and clean the Snake Head coordinates
-		String headLeftStr = this.getImage().getElement().getStyle().getLeft().replace("px", "").trim();
-		String headTopStr = this.getImage().getElement().getStyle().getTop().replace("px", "").trim();
-		double headX1 = headLeftStr.isEmpty() ? 0.0 : Double.valueOf(headLeftStr);
-		double headY1 = headTopStr.isEmpty() ? 0.0 : Double.valueOf(headTopStr);
+		if (fruit == null || this.getImage() == null || fruit.getImage() == null) {
+			return false;
+		}
 
-		// Define Head edges based on its 48x48 px dimension
-		double headX2 = headX1 + 48;
-		double headY2 = headY1 + 48;
+		double headX1 = this.getImage().getAbsoluteLeft();
+		double headY1 = this.getImage().getAbsoluteTop();
+		double headW = this.getImage().getOffsetWidth() > 0 ? this.getImage().getOffsetWidth() : 48;
+		double headH = this.getImage().getOffsetHeight() > 0 ? this.getImage().getOffsetHeight() : 48;
+		double headX2 = headX1 + headW;
+		double headY2 = headY1 + headH;
 
-		// 2. Extract and clean the Fruit coordinates
-		String fruitLeftStr = fruit.getImage().getElement().getStyle().getLeft().replace("px", "").trim();
-		String fruitTopStr = fruit.getImage().getElement().getStyle().getTop().replace("px", "").trim();
-		double fruitX1 = fruitLeftStr.isEmpty() ? 0.0 : Double.valueOf(fruitLeftStr);
-		double fruitY1 = fruitTopStr.isEmpty() ? 0.0 : Double.valueOf(fruitTopStr);
+		double fruitX1 = fruit.getImage().getAbsoluteLeft();
+		double fruitY1 = fruit.getImage().getAbsoluteTop();
+		double fruitW = fruit.getImage().getOffsetWidth() > 0 ? fruit.getImage().getOffsetWidth() : 18;
+		double fruitH = fruit.getImage().getOffsetHeight() > 0 ? fruit.getImage().getOffsetHeight() : 24;
+		double fruitX2 = fruitX1 + fruitW;
+		double fruitY2 = fruitY1 + fruitH;
 
-		// Define Fruit edges based on its 18x24 px dimension
-		double fruitX2 = fruitX1 + 18;
-		double fruitY2 = fruitY1 + 24;
-
-		// 3. Evaluate 2D Bounding Box Overlap Condition
-		// Returns true if the rectangles overlap on both axes
 		boolean xOverlap = (headX1 < fruitX2) && (headX2 > fruitX1);
 		boolean yOverlap = (headY1 < fruitY2) && (headY2 > fruitY1);
 

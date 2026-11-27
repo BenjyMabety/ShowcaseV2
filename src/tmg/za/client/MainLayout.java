@@ -425,15 +425,14 @@ public class MainLayout extends Composite {
 			 */
 			private Widget spawnFruit(boolean eat) {
 				// right 368->1118
-				// top 0->530
+				// top 0->530 (adjusted for 28px footer + fruit height)
 				if (eat) {
 					Snake child = new Snake();
 					snake.addTail(child);
 					mainCanvas.add(snake.getChildren().get(snake.getChildren().size() - 1).getImage());
-
 				}
 				double left = generateRandom(0, 780);
-				double top = generateRandom(0, 530);
+				double top = generateRandom(0, 490);
 				fruit.getImage().getElement().getStyle().setLeft(left, Unit.PX);
 				fruit.getImage().getElement().getStyle().setTop(top, Unit.PX);
 				fruit.getImage().getElement().getStyle().setPosition(Position.ABSOLUTE);
