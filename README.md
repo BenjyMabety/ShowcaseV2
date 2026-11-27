@@ -1,4 +1,4 @@
-# 🚀 ShowcaseV2
+# 🚀 ShowcaseV2 - https://github.com/BenjyMabety/ShowcaseV2
 
 App deployed on GitHub Pages: [https://benjymabety.github.io/ShowcaseV2/](https://benjymabety.github.io/ShowcaseV2/)
 
@@ -47,10 +47,41 @@ You can deploy this application to a standalone Tomcat environment using one of 
 *If your IDE setup lacks the enterprise export wizard:*
 1. Click the **GWT Compile** button in your Eclipse toolbar to compile Java to static production JavaScript assets.
 2. In your Tomcat server's **`webapps/`** directory, create a new folder named exactly `Showcase`.
-3. Copy the entire contents of your local project's **`/war`** folder directly into that new Tomcat server folder. 
+3. Copy the entire contents of your local project's **`/war`** folder directly into that new Tomcat server folder.
 4. *Note: Ensure you only copy the runtime files (`WEB-INF`, `showcase`, `Showcase.html`, `Showcase.css`), skipping local temp caches like `gwt-unitCache`*.
 
 ### Accessing the Server Build
 Start your Tomcat web service and navigate to:
 ```text
 http://localhost:8080/Showcase/Showcase.html
+```
+
+---
+
+### 🐳 Docker Setup
+
+1. Build the Docker image using your multi-stage Dockerfile:
+   ```bash
+   docker build -t showcase-app .
+   ```
+2. Stop and remove any existing container instance (if running):
+   ```bash
+   docker stop showcase-container
+   docker rm showcase-container
+   ```
+3. Run the fresh container, mapping port `8080`:
+   ```bash
+   docker run -d -p 8080:8080 --name showcase-container showcase-app
+   ```
+
+---
+
+## 📋 Project Roadmap & TO-DOs
+
+### ⚙️ Architecture & Build Management
+- [ ] **Implement Maven/Gradle Build Scripts**: Migrate the build structure to Maven (`pom.xml`) or Gradle to eliminate IDE-specific dependencies and allow automated one-command WAR packaging.
+- [ ] **Add Git Environment Filters**: Introduce a generic root `.gitignore` file to scrub IDE-specific metadata (`.settings/`, `.classpath`) and local compilation dumps (`/gwt-unitCache/`) from public tracking.
+
+### 🎮 Gameplay Optimization
+- [ ] **Abstract Object Movement Engine**: Refactor standard positioning metrics across different games into a streamlined, reusable rendering pipeline within the shared `Movable` structure.
+- [ ] **Enhance Input Latency Handling**: Introduce an event processing queue to store high-speed button commands sequentially, preventing overlapping input checks inside tight frames.
