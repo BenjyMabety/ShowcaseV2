@@ -1,9 +1,9 @@
-name: Build and Deploy GWT Static Preview
+name: Build and Deploy GWT Static Site
 
 on:
   push:
     branches:
-      - ShowcaseV2-preview
+      - main
   workflow_dispatch:
 
 permissions:
@@ -19,7 +19,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout ShowcaseV2-preview
+      - name: Checkout main
         uses: actions/checkout@v4
 
       - name: Set up Java 17
