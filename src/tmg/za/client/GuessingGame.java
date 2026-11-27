@@ -6,8 +6,10 @@ import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.dom.client.KeyCodes;
 import com.google.gwt.event.dom.client.KeyDownEvent;
 import com.google.gwt.event.dom.client.KeyDownHandler;
+import com.google.gwt.http.client.URL;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
+import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.DialogBox;
 import com.google.gwt.user.client.ui.Label;
@@ -30,6 +32,8 @@ public class GuessingGame extends DialogBox {
 	@UiField
 	Button enterButton;
 	@UiField
+	Button shareButton;
+	@UiField
 	TextBox tbMagic;
 	@UiField
 	Label labelFeed;
@@ -40,16 +44,22 @@ public class GuessingGame extends DialogBox {
 
 	private double magic = 0;
 	private int attempts = 0;
+	private int maxAttempts = 6;
 
 	/**
 	 * Guess the magic number between 1 and 100
 	 */
 	public GuessingGame() {
 		setWidget(uiBinder.createAndBindUi(this));
+		tbMagic.getElement().setAttribute("type", "number");
+		tbMagic.getElement().setAttribute("min", "1");
+		tbMagic.getElement().setAttribute("max", "100");
+		tbMagic.getElement().setAttribute("step", "1");
 		pbGuess = new PushButton("Guessing Game");
 		closeButton.setText("Close");
 		enterButton.setText("Enter");
-		magic = Math.round(Math.random() * 100);
+		shareButton.setText("Share");
+		magic = (int) (Math.random() * 100) + 1;
 
 		closeButton.addClickHandler(new ClickHandler() {
 
@@ -67,8 +77,17 @@ public class GuessingGame extends DialogBox {
 				labelAttempts.setText("");
 				labelFeed.setText("");
 				tbMagic.setValue("");
-				magic = Math.round(Math.random() * 100);
+				enterButton.setEnabled(true);
+				shareButton.setVisible(false);
+				magic = (int) (Math.random() * 100) + 1;
 
+			}
+		});
+		shareButton.addClickHandler(new ClickHandler() {
+
+			@Override
+			public void onClick(ClickEvent event) {
+				openShareMenu();
 			}
 		});
 		ClickHandler myHandler = new ClickHandler() {
@@ -94,11 +113,24 @@ public class GuessingGame extends DialogBox {
 	 * Enter the input
 	 */
 	protected void enter() {
-		labelFeed.setText("");
-		labelFeed.setText(evaluateResponse());
-		attempts++;
-		labelAttempts.setText(attempts + "");
+		if (!enterButton.isEnabled()) {
+			return;
+		}
 
+		attempts++;
+		labelAttempts.setText(attempts + "/" + maxAttempts);
+
+		String result = evaluateResponse();
+		if ("MAGIC!".equals(result)) {
+			enterButton.setEnabled(false);
+			labelFeed.setText("MAGIC! You got it in " + attempts + " attempts.");
+			shareButton.setVisible(true);
+		} else if (attempts >= maxAttempts) {
+			enterButton.setEnabled(false);
+			labelFeed.setText("Game Over! The magic number was " + (int) magic + ".");
+		} else {
+			labelFeed.setText(result);
+		}
 	}
 
 	/**
@@ -107,9 +139,22 @@ public class GuessingGame extends DialogBox {
 	 * @return result
 	 */
 	public String evaluateResponse() {
-		if (Double.valueOf(tbMagic.getValue()) > magic) {
-			return "lOWER";
-		} else if (Double.valueOf(tbMagic.getValue()) < magic) {
+		String raw = tbMagic.getValue();
+		if (raw == null || raw.trim().isEmpty()) {
+			return "Enter a number between 1 and 100";
+		}
+		double guess;
+		try {
+			guess = Double.parseDouble(raw.trim());
+		} catch (NumberFormatException ex) {
+			return "Enter a valid number";
+		}
+		if (guess < 1 || guess > 100) {
+			return "Keep it between 1 and 100";
+		}
+		if (guess > magic) {
+			return "Lower";
+		} else if (guess < magic) {
 			return "Higher";
 		} else {
 			return "MAGIC!";
@@ -117,7 +162,45 @@ public class GuessingGame extends DialogBox {
 	}
 
 	/**
-	 * @return
+	 * @return share text
+	 */
+	private String buildShareText() {
+		return "I guessed the Magic Number (" + (int) magic + ") in " + attempts + "/" + maxAttempts
+				+ " attempts on Ben's Java GWT Showcase!";
+	}
+
+	/**
+	 * 
+	 */
+	private void openShareMenu() {
+		String rawText = buildShareText();
+		String currentUrl = Window.Location.getHref();
+		String encodedText = URL.encodeQueryString(rawText);
+		String encodedUrl = URL.encodeQueryString(currentUrl);
+
+		com.google.gwt.user.client.ui.PopupPanel sharePopup = new com.google.gwt.user.client.ui.PopupPanel(true);
+		com.google.gwt.user.client.ui.VerticalPanel box = new com.google.gwt.user.client.ui.VerticalPanel();
+		box.setSpacing(6);
+
+		com.google.gwt.user.client.ui.Anchor shareWhatsApp = new com.google.gwt.user.client.ui.Anchor("WhatsApp", true,
+				"https://wa.me/?text=" + URL.encodeQueryString(rawText + " " + currentUrl));
+		shareWhatsApp.getElement().setAttribute("target", "_blank");
+		shareWhatsApp.getElement().setAttribute("rel", "noopener noreferrer");
+
+		com.google.gwt.user.client.ui.Anchor shareX = new com.google.gwt.user.client.ui.Anchor("X", true,
+				"https://twitter.com/intent/tweet?text=" + encodedText + "&url=" + encodedUrl);
+		shareX.getElement().setAttribute("target", "_blank");
+		shareX.getElement().setAttribute("rel", "noopener noreferrer");
+
+		box.add(shareWhatsApp);
+		box.add(shareX);
+
+		sharePopup.setWidget(box);
+		sharePopup.showRelativeTo(shareButton);
+	}
+
+	/**
+	 * @return pbGuess
 	 */
 	public PushButton getPbGuess() {
 		return pbGuess;

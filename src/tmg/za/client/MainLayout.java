@@ -12,26 +12,26 @@ import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.dom.client.KeyCodes;
 import com.google.gwt.event.dom.client.KeyUpEvent;
 import com.google.gwt.event.dom.client.KeyUpHandler;
+import com.google.gwt.http.client.URL;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
-import com.google.gwt.user.client.rpc.AsyncCallback;
+import com.google.gwt.user.client.ui.Anchor;
+import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.DialogBox;
 import com.google.gwt.user.client.ui.HasHorizontalAlignment;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.Label;
+import com.google.gwt.user.client.ui.PopupPanel;
+import com.google.gwt.user.client.ui.SplitLayoutPanel;
 import com.google.gwt.user.client.ui.TextArea;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
 
-import tmg.za.client.FileEditor.FileEditor;
-import tmg.za.client.FileEditor.FileService;
-import tmg.za.client.FileEditor.FileServiceAsync;
-import tmg.za.client.FileEditor.FileUploader;
-import tmg.za.client.Login.Login;
 import tmg.za.client.Pacman.Ghost;
 import tmg.za.client.Pacman.Pacman;
 import tmg.za.client.Resources.Resources;
@@ -44,10 +44,14 @@ import tmg.za.shared.Direction;
 import tmg.za.shared.MyFoo.MyStyle;
 import tmg.za.shared.Physics;
 
+/**
+ * MainLayout class
+ */
 public class MainLayout extends Composite {
 
 	private static MainLayoutUiBinder uiBinder = GWT.create(MainLayoutUiBinder.class);
-	private final FileServiceAsync fileService = GWT.create(FileService.class);
+	/* Deprecated */
+	// private final FileServiceAsync fileService = GWT.create(FileService.class);
 
 	Resources resources = GWT.create(Resources.class);
 	Physics physics = new Physics();
@@ -60,9 +64,9 @@ public class MainLayout extends Composite {
 	public static final String SNAKE = "SNAKE";
 	public static final String PACMAN = "PACMAN";
 
+	/* Pacman */
 	// Load MAP_1 dynamically from Map_1.txt in Resources
 	public String[] MAP_1 = resources.map1().getText().split("\\r?\\n");
-
 	private Image[][] fruitGrid;
 	private Image[][] riceGrid;
 	private final List<Widget> mapWidgets = new ArrayList<>();
@@ -70,11 +74,23 @@ public class MainLayout extends Composite {
 	private int totalRiceRemaining = 0;
 	private boolean isGameFrozen = false;
 	private int timerInterval = 600; // Base Pacman move timer in ms
-
 	private final List<Ghost> activeGhosts = new ArrayList<>();
 	private Timer ghostDespawnTimer;
 	private boolean isWaitingForInput = true;
 
+	/* SpaceForce */
+	private final List<Image> activeExplosions = new ArrayList<>();
+	private final List<Timer> activeExplosionTimers = new ArrayList<>();
+	private Timer spaceSwayTimer;
+	private boolean spaceHandlersInitialized = false;
+	private int extraLives = 0;
+	private final HorizontalPanel lifePanel = new HorizontalPanel();
+	private final List<Image> lifeCoinImages = new ArrayList<>();
+	private final List<Widget> activeLifeBanners = new ArrayList<>();
+	private final List<Timer> activeLifeBannerTimers = new ArrayList<>();
+
+	@UiField
+	SplitLayoutPanel splitLayout;
 	@UiField
 	VerticalPanel mainPanel;
 	@UiField
@@ -93,70 +109,126 @@ public class MainLayout extends Composite {
 	VerticalPanel buttonPanel;
 	@UiField
 	MyStyle style;
-	FileEditor fileEditor;
-	Login login;
+	/* Deprecated */
+	// FileEditor fileEditor;
+	// Login login;
+	// Ball ball;
+	// FileUploader upload = new FileUploader();
 	GuessingGame gg;
-	Ball ball;
 	SpaceForce sf;
 	Snake snake;
 	Pacman pacMan;
+
 	// Track the active image widget on the canvas
 	private Image currentPacmanImage = null;
 	Timer t;
 	private int currentSpeed = 1000; // Starts at 1 step per 1000ms
 	private int score = 0;
 	private com.google.gwt.user.client.ui.Label scoreLabel = new com.google.gwt.user.client.ui.Label("Score: 0");
-
-	ArrayList<Asteroid> asteroids = new ArrayList<Asteroid>();
 	Fruit fruit = new Fruit();
 
-	FileUploader upload = new FileUploader();
+	ArrayList<Asteroid> asteroids = new ArrayList<Asteroid>();
+	private static final int INITIAL_BULLETS = 10;
+	private static final int[] POWER_UP_AMOUNTS = { 10, 20, 50 };
 
+	private int bulletsRemaining = INITIAL_BULLETS;
+	private int survivalSeconds = 0;
+	private int asteroidsDestroyed = 0;
+	private Timer survivalTimer;
+
+	private final Label ammoLabel = new Label("Bullets: " + INITIAL_BULLETS);
+	private final Label survivalLabel = new Label("Survived: 0s");
+	private final Label asteroidsLabel = new Label("Asteroids: 0");
+
+	/**
+	 * Space asteroid sub-class
+	 */
+	private static class SpaceAsteroid {
+		final Asteroid asteroid;
+
+		SpaceAsteroid(Asteroid asteroid) {
+			this.asteroid = asteroid;
+		}
+	}
+
+	/**
+	 * Bullet power up class
+	 */
+	private static class BulletPowerUp {
+		final Image image;
+		final int bulletBonus;
+		int rightStep;
+		int topStep;
+
+		/**
+		 * @param image
+		 * @param bulletBonus
+		 * @param rightStep
+		 * @param topStep
+		 */
+		BulletPowerUp(Image image, int bulletBonus, int rightStep, int topStep) {
+			this.image = image;
+			this.bulletBonus = bulletBonus;
+			this.rightStep = rightStep;
+			this.topStep = topStep;
+		}
+
+		/**
+		 * @param deltaX
+		 */
+		void moveX(int deltaX) {
+			rightStep += deltaX;
+			image.getElement().getStyle().setPosition(Position.ABSOLUTE);
+			image.getElement().getStyle().setLeft(rightStep, Unit.PX);
+			image.getElement().getStyle().setTop(topStep, Unit.PX);
+			image.setVisible(true);
+		}
+	}
+
+	private final List<SpaceAsteroid> spaceAsteroids = new ArrayList<>();
+	private final List<BulletPowerUp> spacePowerUps = new ArrayList<>();
+
+	/**
+	 * MainLayout constructor
+	 */
 	public MainLayout() {
 		initWidget(uiBinder.createAndBindUi(this));
-		headerLabel.getElement().setAttribute("style", "font-weight: bold;font-size:100px;text-align:center;");
-		login = new Login();
+		Window.addResizeHandler(event -> {
+			applyHeaderViewportStyle(event.getWidth());
+			if (controlPanel != null && controlPanel.isVisible() && sf != null) {
+				applySpaceBackgroundStyle();
+			}
+		});
+		// login = new Login();
 		gg = new GuessingGame();
-		fileEditor = new FileEditor();
-		ball = new Ball();
+		// fileEditor = new FileEditor();
+		// ball = new Ball();
 		sf = new SpaceForce();
 		snake = new Snake();
 		pacMan = new Pacman();
 
-		mainPanel.add(login.getPbLogin());
+		// mainPanel.add(login.getPbLogin());
 		mainPanel.add(gg.getPbGuess());
-		mainPanel.add(fileEditor.getPbFileEditor());
-		mainPanel.add(ball.getPbBall());
+		// mainPanel.add(fileEditor.getPbFileEditor());
+		// mainPanel.add(ball.getPbBall());
 		mainPanel.add(sf.getPbSpaceForce());
 		mainPanel.add(snake.getPbSnake());
 		mainPanel.add(pacMan.getPbPacman());
+		applyHeaderViewportStyle(Window.getClientWidth());
 
-		login.getPbLogin().addClickHandler(new ClickHandler() {
-
-			@Override
-			public void onClick(ClickEvent event) {
-				if (t != null) {
-					t.cancel();
-				}
-				login.center();
-				login.setGlassEnabled(true);
-				taCanvas.setVisible(false);
-				tbDocument.setVisible(false);
-				buttonPanel.setVisible(false);
-				tbDocument.setText("");
-				tbDocument.setReadOnly(true);
-				mainCanvas.remove(ball.getImage());
-				mainCanvas.remove(sf.getImage());
-				mainCanvas.remove(snake.getImage());
-				mainCanvas.remove(fruit.getImage());
-				mainCanvas.remove(pacMan.getImage());
-				clearPacmanAssets();
-				clearAsteroids();
-				// ball.setLive(false);
-				controlPanel.setVisible(false);
-				setEnabled(false, true);
-			}
-		});
+		/*
+		 * Deprecated login.getPbLogin().addClickHandler(new ClickHandler() {
+		 * 
+		 * @Override public void onClick(ClickEvent event) { if (t != null) {
+		 * t.cancel(); } login.center(); login.setGlassEnabled(true);
+		 * taCanvas.setVisible(false); tbDocument.setVisible(false);
+		 * buttonPanel.setVisible(false); tbDocument.setText("");
+		 * tbDocument.setReadOnly(true); mainCanvas.remove(ball.getImage());
+		 * mainCanvas.remove(sf.getImage()); mainCanvas.remove(snake.getImage());
+		 * mainCanvas.remove(fruit.getImage()); mainCanvas.remove(pacMan.getImage());
+		 * clearPacmanAssets(); clearAsteroids(); // ball.setLive(false);
+		 * controlPanel.setVisible(false); setEnabled(false, true); } });
+		 */
 		gg.getPbGuess().addClickHandler(new ClickHandler() {
 
 			@Override
@@ -171,7 +243,7 @@ public class MainLayout extends Composite {
 				buttonPanel.setVisible(false);
 				tbDocument.setText("");
 				tbDocument.setReadOnly(true);
-				mainCanvas.remove(ball.getImage());
+				// mainCanvas.remove(ball.getImage());
 				mainCanvas.remove(sf.getImage());
 				mainCanvas.remove(snake.getImage());
 				mainCanvas.remove(fruit.getImage());
@@ -184,30 +256,20 @@ public class MainLayout extends Composite {
 			}
 		});
 
-		ball.getPbBall().addClickHandler(new ClickHandler() {
-
-			@Override
-			public void onClick(ClickEvent event) {
-				if (t != null) {
-					t.cancel();
-				}
-				canvasPanel.setVisible(false);
-				buttonPanel.setVisible(false);
-				setupControlPanel(BALL);
-				controlPanel.setVisible(true);
-				mainCanvas.add(ball.getImage().asWidget());
-				// ball.setLive(true);
-				mainCanvas.remove(sf.getImage());
-				mainCanvas.remove(snake.getImage());
-				mainCanvas.remove(fruit.getImage());
-				mainCanvas.remove(pacMan.getImage());
-				clearPacmanAssets();
-				clearAsteroids();
-				setEnabled(true, true);
-				mainCanvas.getParent().getElement().setAttribute("style",
-						"position: absolute; inset: 0px;background-position:center;background-repeat:no-repeat");
-			}
-		});
+		/*
+		 * Deprecated ball.getPbBall().addClickHandler(new ClickHandler() {
+		 * 
+		 * @Override public void onClick(ClickEvent event) { if (t != null) {
+		 * t.cancel(); } canvasPanel.setVisible(false); buttonPanel.setVisible(false);
+		 * setupControlPanel(BALL); controlPanel.setVisible(true);
+		 * mainCanvas.add(ball.getImage().asWidget()); // ball.setLive(true);
+		 * mainCanvas.remove(sf.getImage()); mainCanvas.remove(snake.getImage());
+		 * mainCanvas.remove(fruit.getImage()); mainCanvas.remove(pacMan.getImage());
+		 * clearPacmanAssets(); clearAsteroids(); setEnabled(true, true);
+		 * mainCanvas.getParent().getElement().setAttribute("style",
+		 * "position: absolute; inset: 0px;background-position:center;background-repeat:no-repeat"
+		 * ); } });
+		 */
 		sf.getPbSpaceForce().addClickHandler(new ClickHandler() {
 
 			@Override
@@ -216,60 +278,18 @@ public class MainLayout extends Composite {
 				buttonPanel.setVisible(false);
 				controlPanel.setVisible(true);
 				setupControlPanel(SPACE);
-				mainCanvas.remove(ball.getImage());
 				mainCanvas.remove(snake.getImage());
 				mainCanvas.remove(fruit.getImage());
 				mainCanvas.remove(pacMan.getImage());
-				// ball.setLive(false);
 				setEnabled(true, false);
-				mainCanvas.add(sf.getImage().asWidget());
-				renderAsteroids();
 				clearPacmanAssets();
-				sf.setDistance(mainCanvas.getAbsoluteLeft());
+				resetSpaceGame(true);
 
-				// left:735px;top:0px;
-				// left:735px;top:195px;
-				// left:735px;top:375px;
-
-				if (t != null) {
-					t.cancel();
-				}
-
-				t = new Timer() {
-
-					@Override
-					public void run() {
-						redraw();
+				com.google.gwt.core.client.Scheduler.get().scheduleDeferred(() -> {
+					if (sf != null && sf.getPbKeyboard() != null && sf.getPbKeyboard().isAttached()) {
+						sf.getPbKeyboard().setFocus(true);
 					}
-
-					private void redraw() {
-
-						mainCanvas.getParent().getElement().setAttribute("style",
-								"position: absolute; inset: 0px;background-position:" + sf.getDistance()
-										+ "px;background-repeat:repeat-x;");
-						sf.setDistance(sf.getDistance() - physics.getSpace());
-						for (int i = 0; i < asteroids.size(); i++) {
-							asteroids.get(i).moveX(-physics.getForce(asteroids.get(i).getMass(), false, false));
-							if (asteroids.get(i).getImage().getAbsoluteLeft() < 165) {
-								asteroids.remove(asteroids.get(i));
-								continue;
-							}
-							// asteroid.moveX(-1);
-							if (physics.checkCollision(sf, asteroids.get(i))) {
-								Window.alert("Game Over");
-								sf.getImage().removeFromParent();
-								resetSpace();
-							}
-						}
-						if (asteroids.isEmpty()) {
-							renderAsteroids();
-						}
-
-					}
-
-				};
-				t.scheduleRepeating(1000);
-
+				});
 			}
 		});
 		snake.getPbSnake().addClickHandler(new ClickHandler() {
@@ -279,7 +299,6 @@ public class MainLayout extends Composite {
 				if (t != null) {
 					t.cancel();
 				}
-				// Add this inside your onClick handler right where the game starts up:
 				score = 0;
 				scoreLabel.setText("Score: 0");
 				currentSpeed = 1000;
@@ -339,10 +358,9 @@ public class MainLayout extends Composite {
 							double cTop = childTopStr.isEmpty() ? 0.0 : Double.valueOf(childTopStr);
 
 							// If head coordinates perfectly match a tail segment coordinate, end the game
-							// If head coordinates perfectly match a tail segment coordinate, end the game
 							if (hLeft == cLeft && hTop == cTop) {
-								t.cancel(); // Stop the game loop timer immediately
-								Window.alert("Game Over! You bit your tail.");
+								t.cancel(); // Pause game loop while popup is open
+								int finalScore = score;
 
 								// 1. Clear out tail children and reset head position
 								snake.reset();
@@ -354,9 +372,9 @@ public class MainLayout extends Composite {
 								// 3. Re-initialize baseline starting speed delay
 								currentSpeed = 1000;
 
-								// 4. Automatically re-launch the game timer loop instantly
-								t.scheduleRepeating(currentSpeed);
-								return; // Exit the loop and redraw execution early
+								// 4. Show Game Over popup with Share & Close
+								showSnakeGameOverDialog(finalScore);
+								return;
 							}
 
 						}
@@ -391,7 +409,7 @@ public class MainLayout extends Composite {
 				snake.setHead(true);
 				// ball.setLive(true);
 				mainCanvas.remove(sf.getImage());
-				mainCanvas.remove(ball.getImage());
+				// mainCanvas.remove(ball.getImage());
 				mainCanvas.remove(pacMan.getImage());
 				mainCanvas.add(spawnFruit(false));
 				clearAsteroids();
@@ -403,7 +421,7 @@ public class MainLayout extends Composite {
 
 			/**
 			 * @param eat
-			 * @return
+			 * @return Image
 			 */
 			private Widget spawnFruit(boolean eat) {
 				// right 368->1118
@@ -440,7 +458,7 @@ public class MainLayout extends Composite {
 				mainCanvas.remove(sf.getImage());
 				mainCanvas.remove(snake.getImage());
 				mainCanvas.remove(fruit.getImage());
-				mainCanvas.remove(ball.getImage());
+				// mainCanvas.remove(ball.getImage());
 				clearAsteroids();
 
 				// Perform full game reset (Score = 0, reloads Map_1.txt, positions Pacman)
@@ -453,86 +471,150 @@ public class MainLayout extends Composite {
 						"position: absolute; inset: 0px;background-position:center;background-repeat:no-repeat");
 			}
 		});
-		setUpEditorButtonHandlers();
 
-	}
-
-	private void redraw() {
-		if (isGameFrozen)
-			return;
-
-		Image activeFace = pacMan.getImage();
-		if (currentPacmanImage != activeFace) {
-			mainCanvas.remove(currentPacmanImage);
-			currentPacmanImage = activeFace;
-			mainCanvas.add(currentPacmanImage);
-		}
-
-		String dir = pacMan.getDirection();
-
-		if (canMove(pacMan.getRightStep(), pacMan.getTopStep(), dir)) {
-			if (Direction.RIGHT.equalsIgnoreCase(dir)) {
-				pacMan.moveX(30);
-			} else if (Direction.LEFT.equalsIgnoreCase(dir)) {
-				pacMan.moveX(-30);
-			} else if (Direction.UP.equalsIgnoreCase(dir)) {
-				pacMan.moveY(-30);
-			} else if (Direction.DOWN.equalsIgnoreCase(dir)) {
-				pacMan.moveY(30);
-			}
-
-			checkItemCollision();
-			checkGhostCollision();
-		}
 	}
 
 	/**
-	 * @param min
-	 * @param max
-	 * @return
+	 * @param finalScore
 	 */
-	protected double generateRandom(int min, int max) {
-		int value = (int) (Math.random() * (max - min + 1) + min);
-		return value;
+	private void showSnakeGameOverDialog(int finalScore) {
+		com.google.gwt.user.client.ui.DialogBox gameOverBox = new com.google.gwt.user.client.ui.DialogBox(false, true);
+		gameOverBox.setText("Game Over");
+		gameOverBox.setGlassEnabled(true);
+
+		com.google.gwt.user.client.ui.VerticalPanel content = new com.google.gwt.user.client.ui.VerticalPanel();
+		content.setSpacing(8);
+
+		content.add(new Label("You bit your tail! Final Score: " + finalScore));
+
+		String shareText = "I scored " + finalScore + " points in Snake on Ben's Java GWT Showcase! (PC)";
+		String currentUrl = Window.Location.getHref();
+		String encodedText = com.google.gwt.http.client.URL.encodeQueryString(shareText);
+		String encodedUrl = com.google.gwt.http.client.URL.encodeQueryString(currentUrl);
+
+		com.google.gwt.user.client.ui.Button shareButton = new com.google.gwt.user.client.ui.Button("Share");
+		shareButton.addClickHandler(event -> {
+			com.google.gwt.user.client.ui.PopupPanel sharePopup = new com.google.gwt.user.client.ui.PopupPanel(true);
+			com.google.gwt.user.client.ui.VerticalPanel linksBox = new com.google.gwt.user.client.ui.VerticalPanel();
+			linksBox.setSpacing(6);
+
+			com.google.gwt.user.client.ui.Anchor shareWhatsApp = new com.google.gwt.user.client.ui.Anchor("WhatsApp",
+					true, "https://wa.me/?text="
+							+ com.google.gwt.http.client.URL.encodeQueryString(shareText + " " + currentUrl));
+			shareWhatsApp.getElement().setAttribute("target", "_blank");
+			shareWhatsApp.getElement().setAttribute("rel", "noopener noreferrer");
+
+			com.google.gwt.user.client.ui.Anchor shareX = new com.google.gwt.user.client.ui.Anchor("X", true,
+					"https://twitter.com/intent/tweet?text=" + encodedText + "&url=" + encodedUrl);
+			shareX.getElement().setAttribute("target", "_blank");
+			shareX.getElement().setAttribute("rel", "noopener noreferrer");
+
+			linksBox.add(shareWhatsApp);
+			linksBox.add(shareX);
+			sharePopup.setWidget(linksBox);
+			sharePopup.showRelativeTo(shareButton);
+		});
+
+		com.google.gwt.user.client.ui.Button closeButton = new com.google.gwt.user.client.ui.Button("Close");
+		closeButton.addClickHandler(event -> {
+			gameOverBox.hide();
+			if (t != null) {
+				t.scheduleRepeating(currentSpeed);
+			}
+		});
+
+		HorizontalPanel actions = new HorizontalPanel();
+		actions.setSpacing(8);
+		actions.add(shareButton);
+		actions.add(closeButton);
+		content.add(actions);
+
+		gameOverBox.setWidget(content);
+		gameOverBox.center();
+		gameOverBox.show();
 	}
 
 	/**
 	 * 
 	 */
 	protected void clearAsteroids() {
+		if (survivalTimer != null) {
+			survivalTimer.cancel();
+			survivalTimer = null;
+		}
 		for (Asteroid ast : asteroids) {
 			ast.getImage().removeFromParent();
 		}
 		asteroids.clear();
+		spaceAsteroids.clear();
+
+		for (BulletPowerUp pu : spacePowerUps) {
+			pu.image.removeFromParent();
+		}
+		spacePowerUps.clear();
+
+		for (Timer timer : activeExplosionTimers) {
+			timer.cancel();
+		}
+		activeExplosionTimers.clear();
+
+		for (Image exp : activeExplosions) {
+			exp.removeFromParent();
+		}
+		activeExplosions.clear();
+
+		stopSpaceSwayTimer();
+
+		for (Timer timer : activeLifeBannerTimers) {
+			timer.cancel();
+		}
+		activeLifeBannerTimers.clear();
+
+		for (Widget banner : activeLifeBanners) {
+			banner.removeFromParent();
+		}
+		activeLifeBanners.clear();
 	}
 
-	public void clearPacmanAssets() {
+	/**
+	 * 
+	 */
+	private void spawnSpaceWave() {
+		int rightGap = 0;
 
-		// 2. Clear all active ghosts and cancel despawn timer
-		despawnGhosts();
+		for (int group = 0; group < 3; group++) {
+			for (int slot = 0; slot < 3; slot++) {
+				int xPos = 735 + rightGap;
+				int yPos = generateGap();
 
-		// 3. Remove active Pacman sprite
-		if (currentPacmanImage != null) {
-			mainCanvas.remove(currentPacmanImage);
-			currentPacmanImage = null;
-		}
-
-		// 4. Remove all brick, rice, and fruit map widgets
-		if (mapWidgets != null) {
-			for (Widget w : mapWidgets) {
-				mainCanvas.remove(w);
+				Asteroid ast = new Asteroid();
+				ast.setRightStep(xPos);
+				ast.setTopStep(yPos);
+				ast.getImage().getElement().getStyle().setPosition(Position.ABSOLUTE);
+				mainCanvas.add(ast.getImage());
+				asteroids.add(ast);
+				spaceAsteroids.add(new SpaceAsteroid(ast));
 			}
-			mapWidgets.clear();
+
+			rightGap += 140 * 3;
 		}
+	}
 
-		// 5. Clear grid array references
-		riceGrid = null;
-		fruitGrid = null;
+	/**
+	 * 
+	 */
+	private void spawnTimedPowerUp() {
+		int bonus = POWER_UP_AMOUNTS[(int) (Math.random() * POWER_UP_AMOUNTS.length)];
+		int xPos = 735;
+		int yPos = generateGap();
 
-		// 6. Reset state variables
-		isGameFrozen = false;
-		riceChompCounter = 0;
-		totalRiceRemaining = 0;
+		Image puImg = new Image(resources.powerUp());
+		puImg.setPixelSize(32, 32);
+		puImg.getElement().getStyle().setPosition(Position.ABSOLUTE);
+		puImg.getElement().getStyle().setLeft(xPos, Unit.PX);
+		puImg.getElement().getStyle().setTop(yPos, Unit.PX);
+		mainCanvas.add(puImg);
+		spacePowerUps.add(new BulletPowerUp(puImg, bonus, xPos, yPos));
 	}
 
 	/**
@@ -584,6 +666,582 @@ public class MainLayout extends Composite {
 	}
 
 	/**
+	 * 
+	 */
+	private void updateSpaceHud() {
+		ammoLabel.setText("Bullets: " + bulletsRemaining);
+		survivalLabel.setText("Survived: " + survivalSeconds + "s");
+		asteroidsLabel.setText("Asteroids: " + asteroidsDestroyed);
+	}
+
+	/**
+	 * 
+	 */
+	private void startSpaceLoops() {
+		if (t != null) {
+			t.cancel();
+		}
+		if (survivalTimer != null) {
+			survivalTimer.cancel();
+		}
+
+		survivalTimer = new Timer() {
+			@Override
+			public void run() {
+				survivalSeconds++;
+				updateSpaceHud();
+				if (survivalSeconds > 0 && survivalSeconds % 30 == 0) {
+					spawnTimedPowerUp();
+				}
+			}
+		};
+		survivalTimer.scheduleRepeating(1000);
+
+		t = new Timer() {
+			@Override
+			public void run() {
+				redrawSpace();
+			}
+		};
+		t.scheduleRepeating(100); // Smooth step ticks; base force scaled for ~10 ticks/sec
+
+		startSpaceSwayTimer();
+
+	}
+
+	/**
+	 * @param restartLoops
+	 */
+	private void resetSpaceGame(boolean restartLoops) {
+		clearAsteroids();
+		bulletsRemaining = INITIAL_BULLETS;
+		survivalSeconds = 0;
+		asteroidsDestroyed = 0;
+		extraLives = 0;
+		clearLifeCoinsFromHud();
+		updateSpaceHud();
+
+		sf.setRightStep(0);
+		sf.setTopStep(0);
+		sf.getImage().getElement().getStyle().setPosition(Position.ABSOLUTE);
+		sf.getImage().getElement().getStyle().setLeft(0, Unit.PX);
+		sf.getImage().getElement().getStyle().setTop(0, Unit.PX);
+
+		if (sf.getImage().getParent() == null) {
+			mainCanvas.add(sf.getImage().asWidget());
+		}
+		sf.setDistance(mainCanvas.getAbsoluteLeft());
+		spawnSpaceWave();
+
+		if (restartLoops) {
+			startSpaceLoops();
+		}
+
+	}
+
+	/**
+	 * @param target
+	 */
+	private void removeSpaceAsteroidRef(Asteroid target) {
+		for (int i = spaceAsteroids.size() - 1; i >= 0; i--) {
+			if (spaceAsteroids.get(i).asteroid == target) {
+				spaceAsteroids.remove(i);
+			}
+		}
+	}
+
+	/**
+	 * @param pu
+	 * @return true or false
+	 */
+	private boolean isShipTouchingPowerUp(BulletPowerUp pu) {
+		int shipLeft = sf.getImage().getAbsoluteLeft();
+		int shipTop = sf.getImage().getAbsoluteTop();
+		int shipRight = shipLeft + sf.getImage().getOffsetWidth();
+		int shipBottom = shipTop + sf.getImage().getOffsetHeight();
+
+		int puLeft = pu.image.getAbsoluteLeft();
+		int puTop = pu.image.getAbsoluteTop();
+		int puRight = puLeft + pu.image.getOffsetWidth();
+		int puBottom = puTop + pu.image.getOffsetHeight();
+
+		return shipLeft < puRight && shipRight > puLeft && shipTop < puBottom && shipBottom > puTop;
+	}
+
+	/**
+	 * 
+	 */
+	private void redrawSpace() {
+		applySpaceBackgroundStyle();
+		sf.setDistance(sf.getDistance() - physics.getSpace());
+
+		int baseStep = Math.max(1, physics.getForce(3, false, false) / 10);
+
+		for (int i = spaceAsteroids.size() - 1; i >= 0; i--) {
+			SpaceAsteroid entry = spaceAsteroids.get(i);
+			int step = baseStep * 5;
+			entry.asteroid.moveX(-step);
+
+			if (entry.asteroid.getImage().getAbsoluteLeft() < 165) {
+				entry.asteroid.getImage().removeFromParent();
+				asteroids.remove(entry.asteroid);
+				spaceAsteroids.remove(i);
+				continue;
+			}
+
+			if (physics.checkCollision(sf, entry.asteroid)) {
+				if (extraLives > 0) {
+					respawnAfterExtraLife();
+					return;
+				}
+				if (t != null) {
+					t.cancel();
+				}
+				if (survivalTimer != null) {
+					survivalTimer.cancel();
+				}
+				stopSpaceSwayTimer();
+				int finalSeconds = survivalSeconds;
+				sf.getImage().removeFromParent();
+				showSpaceGameOverDialog(finalSeconds);
+				return;
+			}
+		}
+
+		int powerUpStep = baseStep * 5;
+		for (int i = spacePowerUps.size() - 1; i >= 0; i--) {
+			BulletPowerUp pu = spacePowerUps.get(i);
+			pu.moveX(-powerUpStep);
+
+			if (pu.image.getAbsoluteLeft() < 165) {
+				pu.image.removeFromParent();
+				spacePowerUps.remove(i);
+				continue;
+			}
+
+			if (isShipTouchingPowerUp(pu)) {
+				bulletsRemaining += pu.bulletBonus;
+				updateSpaceHud();
+				pu.image.removeFromParent();
+				spacePowerUps.remove(i);
+			}
+		}
+
+		if (spaceAsteroids.isEmpty() && spacePowerUps.isEmpty()) {
+			spawnSpaceWave();
+		}
+	}
+
+	/**
+	 * @param absLeft
+	 * @param absTop
+	 * @param astWidth
+	 * @param astHeight
+	 */
+	private void spawnExplosion(int absLeft, int absTop, int astWidth, int astHeight) {
+		int size = 96;
+		int effectiveWidth = astWidth > 0 ? astWidth : 250;
+		int effectiveHeight = astHeight > 0 ? astHeight : 250;
+
+		int canvasLeft = mainCanvas.getAbsoluteLeft();
+		int canvasTop = mainCanvas.getAbsoluteTop();
+
+		int centerX = (absLeft - canvasLeft) + (effectiveWidth / 2);
+		int centerY = (absTop - canvasTop) + (effectiveHeight / 2);
+		int left = centerX - (size / 2);
+		int top = centerY - (size / 2);
+
+		Image explosion = new Image(resources.explosion());
+		explosion.setPixelSize(size, size);
+		explosion.getElement().getStyle().setPosition(Position.ABSOLUTE);
+		explosion.getElement().getStyle().setLeft(left, Unit.PX);
+		explosion.getElement().getStyle().setTop(top, Unit.PX);
+		explosion.getElement().getStyle().setProperty("pointerEvents", "none");
+		explosion.getElement().getStyle().setProperty("transition", "transform 1.8s ease-out, opacity 2s ease-out");
+		explosion.getElement().getStyle().setProperty("transform", "scale(0.65)");
+		explosion.getElement().getStyle().setProperty("opacity", "1");
+
+		mainCanvas.add(explosion);
+		activeExplosions.add(explosion);
+
+		// Kick off transition on next frame so CSS transition animates smoothly
+		com.google.gwt.core.client.Scheduler.get().scheduleDeferred(() -> {
+			if (explosion.isAttached()) {
+				explosion.getElement().getStyle().setProperty("transform", "scale(1.35)");
+				explosion.getElement().getStyle().setProperty("opacity", "0");
+			}
+		});
+
+		Timer removeTimer = new Timer() {
+			@Override
+			public void run() {
+				explosion.removeFromParent();
+				activeExplosions.remove(explosion);
+				activeExplosionTimers.remove(this);
+			}
+		};
+		activeExplosionTimers.add(removeTimer);
+		removeTimer.schedule(2000);
+	}
+
+	/**
+	 * @param secondsSurvived
+	 */
+	private void showSpaceGameOverDialog(int secondsSurvived) {
+		DialogBox gameOverBox = new DialogBox(false, true);
+		gameOverBox.setText("Game Over");
+		gameOverBox.setGlassEnabled(true);
+
+		VerticalPanel content = new VerticalPanel();
+		content.setSpacing(8);
+
+		content.add(new Label("Hit by an asteroid! Time survived: " + secondsSurvived + "s"));
+
+		String shareText = "I survived " + secondsSurvived + "s and exploded " + asteroidsDestroyed
+				+ " asteroids in Space Force on Ben's Java GWT Showcase! (PC)";
+		String currentUrl = Window.Location.getHref();
+		String encodedText = URL.encodeQueryString(shareText);
+		String encodedUrl = URL.encodeQueryString(currentUrl);
+
+		Button shareButton = new Button("Share");
+		shareButton.addClickHandler(event -> {
+			PopupPanel sharePopup = new PopupPanel(true);
+			VerticalPanel linksBox = new VerticalPanel();
+			linksBox.setSpacing(6);
+
+			Anchor shareWhatsApp = new Anchor("WhatsApp", true,
+					"https://wa.me/?text=" + URL.encodeQueryString(shareText + " " + currentUrl));
+			shareWhatsApp.getElement().setAttribute("target", "_blank");
+			shareWhatsApp.getElement().setAttribute("rel", "noopener noreferrer");
+
+			Anchor shareX = new Anchor("X", true,
+					"https://twitter.com/intent/tweet?text=" + encodedText + "&url=" + encodedUrl);
+			shareX.getElement().setAttribute("target", "_blank");
+			shareX.getElement().setAttribute("rel", "noopener noreferrer");
+
+			linksBox.add(shareWhatsApp);
+			linksBox.add(shareX);
+			sharePopup.setWidget(linksBox);
+			sharePopup.showRelativeTo(shareButton);
+		});
+
+		Button closeButton = new Button("Close");
+		closeButton.addClickHandler(event -> {
+			gameOverBox.hide();
+			resetSpaceGame(true);
+			com.google.gwt.core.client.Scheduler.get().scheduleDeferred(() -> {
+				if (sf != null && sf.getPbKeyboard() != null && sf.getPbKeyboard().isAttached()) {
+					sf.getPbKeyboard().setFocus(true);
+				}
+			});
+		});
+
+		HorizontalPanel actions = new HorizontalPanel();
+		actions.setSpacing(8);
+		actions.add(shareButton);
+		actions.add(closeButton);
+		content.add(actions);
+
+		gameOverBox.setWidget(content);
+		gameOverBox.center();
+		gameOverBox.show();
+	}
+
+	/**
+	 * 
+	 */
+	private void startSpaceSwayTimer() {
+		stopSpaceSwayTimer();
+		sf.resetVerticalMotion();
+		spaceSwayTimer = new Timer() {
+			@Override
+			public void run() {
+				if (sf != null && sf.getImage() != null && sf.getImage().isAttached()) {
+					sf.updateSway(0.025);
+				}
+			}
+		};
+		spaceSwayTimer.scheduleRepeating(25);
+	}
+
+	/**
+	 * 
+	 */
+	private void stopSpaceSwayTimer() {
+		if (spaceSwayTimer != null) {
+			spaceSwayTimer.cancel();
+			spaceSwayTimer = null;
+		}
+		if (sf != null) {
+			sf.resetVerticalMotion();
+		}
+	}
+
+	/**
+	 * 
+	 */
+	private void addLifeCoinToHud() {
+		Image coin = new Image(resources.extraLife());
+		coin.setPixelSize(28, 28);
+		coin.getElement().getStyle().setProperty("marginLeft", "3px");
+		coin.getElement().getStyle().setProperty("marginRight", "3px");
+		lifeCoinImages.add(coin);
+		lifePanel.add(coin);
+	}
+
+	/**
+	 * 
+	 */
+	private void removeLifeCoinFromHud() {
+		if (!lifeCoinImages.isEmpty()) {
+			Image coin = lifeCoinImages.remove(lifeCoinImages.size() - 1);
+			coin.removeFromParent();
+		}
+	}
+
+	/**
+	 * 
+	 */
+	private void clearLifeCoinsFromHud() {
+		for (Image coin : lifeCoinImages) {
+			coin.removeFromParent();
+		}
+		lifeCoinImages.clear();
+		lifePanel.clear();
+	}
+
+	/**
+	 * 
+	 */
+	private void spawnExtraLifeBanner() {
+		Label banner = new Label("Extra Life");
+		banner.getElement().getStyle().setPosition(Position.ABSOLUTE);
+		banner.getElement().getStyle().setLeft(140, Unit.PX);
+		banner.getElement().getStyle().setTop(140, Unit.PX);
+		banner.getElement().getStyle().setProperty("pointerEvents", "none");
+		banner.getElement().getStyle().setProperty("fontSize", "36px");
+		banner.getElement().getStyle().setProperty("fontWeight", "bold");
+		banner.getElement().getStyle().setProperty("fontFamily", "sans-serif");
+		banner.getElement().getStyle().setProperty("color", "#FFD54F");
+		banner.getElement().getStyle().setProperty("textShadow", "0 2px 10px rgba(0, 0, 0, 0.85)");
+		banner.getElement().getStyle().setProperty("transition", "transform 2s ease-in-out, opacity 2s ease-in-out");
+		banner.getElement().getStyle().setProperty("transform", "translateY(25px) scale(0.9)");
+		banner.getElement().getStyle().setProperty("opacity", "0");
+
+		mainCanvas.add(banner);
+		activeLifeBanners.add(banner);
+
+		// Transition in, glide across, and fade out over the 2-second window
+		com.google.gwt.core.client.Scheduler.get().scheduleDeferred(() -> {
+			if (banner.isAttached()) {
+				banner.getElement().getStyle().setProperty("transform", "translateY(-35px) scale(1.12)");
+				banner.getElement().getStyle().setProperty("opacity", "1");
+			}
+		});
+
+		com.google.gwt.core.client.Scheduler.get().scheduleFixedDelay(() -> {
+			if (banner.isAttached()) {
+				banner.getElement().getStyle().setProperty("opacity", "0");
+			}
+			return false;
+		}, 1200);
+
+		Timer removeTimer = new Timer() {
+			@Override
+			public void run() {
+				banner.removeFromParent();
+				activeLifeBanners.remove(banner);
+				activeLifeBannerTimers.remove(this);
+			}
+		};
+		activeLifeBannerTimers.add(removeTimer);
+		removeTimer.schedule(2000);
+	}
+
+	/**
+	 * 
+	 */
+	private void respawnAfterExtraLife() {
+		extraLives--;
+		removeLifeCoinFromHud();
+
+		// Clear active wave/powerups/explosions/sway while preserving survivalSeconds &
+		// asteroidsDestroyed
+		if (t != null) {
+			t.cancel();
+		}
+		for (Asteroid ast : asteroids) {
+			ast.getImage().removeFromParent();
+		}
+		asteroids.clear();
+		spaceAsteroids.clear();
+
+		for (BulletPowerUp pu : spacePowerUps) {
+			pu.image.removeFromParent();
+		}
+		spacePowerUps.clear();
+
+		for (Timer timer : activeExplosionTimers) {
+			timer.cancel();
+		}
+		activeExplosionTimers.clear();
+
+		for (Image exp : activeExplosions) {
+			exp.removeFromParent();
+		}
+		activeExplosions.clear();
+
+		stopSpaceSwayTimer();
+
+		bulletsRemaining = INITIAL_BULLETS;
+		updateSpaceHud();
+
+		sf.setRightStep(0);
+		sf.setTopStep(0);
+		sf.getImage().getElement().getStyle().setPosition(Position.ABSOLUTE);
+		sf.getImage().getElement().getStyle().setLeft(0, Unit.PX);
+		sf.getImage().getElement().getStyle().setTop(0, Unit.PX);
+
+		if (sf.getImage().getParent() == null) {
+			mainCanvas.add(sf.getImage().asWidget());
+		}
+		sf.setDistance(mainCanvas.getAbsoluteLeft());
+		spawnSpaceWave();
+		startSpaceLoops();
+
+		com.google.gwt.core.client.Scheduler.get().scheduleDeferred(() -> {
+			if (sf != null && sf.getPbKeyboard() != null && sf.getPbKeyboard().isAttached()) {
+				sf.getPbKeyboard().setFocus(true);
+			}
+		});
+	}
+
+	/**
+	 * @param finalScore
+	 */
+	private void showPacmanGameOverDialog(int finalScore) {
+		DialogBox gameOverBox = new DialogBox(false, true);
+		gameOverBox.setText("Game Over");
+		gameOverBox.setGlassEnabled(true);
+
+		VerticalPanel content = new VerticalPanel();
+		content.setSpacing(8);
+
+		content.add(new Label("Pacman was caught by a ghost! Final Score: " + finalScore));
+
+		String shareText = "I scored " + finalScore + " points in Pacman on Ben's Java GWT Showcase! (PC)";
+		String currentUrl = Window.Location.getHref();
+		String encodedText = URL.encodeQueryString(shareText);
+		String encodedUrl = URL.encodeQueryString(currentUrl);
+
+		Button shareButton = new Button("Share");
+		shareButton.addClickHandler(event -> {
+			PopupPanel sharePopup = new PopupPanel(true);
+			VerticalPanel linksBox = new VerticalPanel();
+			linksBox.setSpacing(6);
+
+			Anchor shareWhatsApp = new Anchor("WhatsApp", true,
+					"https://wa.me/?text=" + URL.encodeQueryString(shareText + " " + currentUrl));
+			shareWhatsApp.getElement().setAttribute("target", "_blank");
+			shareWhatsApp.getElement().setAttribute("rel", "noopener noreferrer");
+
+			Anchor shareX = new Anchor("X", true,
+					"https://twitter.com/intent/tweet?text=" + encodedText + "&url=" + encodedUrl);
+			shareX.getElement().setAttribute("target", "_blank");
+			shareX.getElement().setAttribute("rel", "noopener noreferrer");
+
+			linksBox.add(shareWhatsApp);
+			linksBox.add(shareX);
+			sharePopup.setWidget(linksBox);
+			sharePopup.showRelativeTo(shareButton);
+		});
+
+		Button closeButton = new Button("Close");
+		closeButton.addClickHandler(event -> gameOverBox.hide());
+
+		HorizontalPanel actions = new HorizontalPanel();
+		actions.setSpacing(8);
+		actions.add(shareButton);
+		actions.add(closeButton);
+		content.add(actions);
+
+		gameOverBox.setWidget(content);
+		gameOverBox.center();
+		gameOverBox.show();
+	}
+
+	/**
+	 * Redraw Pacman
+	 */
+	private void redraw() {
+		if (isGameFrozen)
+			return;
+
+		Image activeFace = pacMan.getImage();
+		if (currentPacmanImage != activeFace) {
+			mainCanvas.remove(currentPacmanImage);
+			currentPacmanImage = activeFace;
+			mainCanvas.add(currentPacmanImage);
+		}
+
+		String dir = pacMan.getDirection();
+
+		if (canMove(pacMan.getRightStep(), pacMan.getTopStep(), dir)) {
+			if (Direction.RIGHT.equalsIgnoreCase(dir)) {
+				pacMan.moveX(30);
+			} else if (Direction.LEFT.equalsIgnoreCase(dir)) {
+				pacMan.moveX(-30);
+			} else if (Direction.UP.equalsIgnoreCase(dir)) {
+				pacMan.moveY(-30);
+			} else if (Direction.DOWN.equalsIgnoreCase(dir)) {
+				pacMan.moveY(30);
+			}
+
+			checkItemCollision();
+			checkGhostCollision();
+		}
+	}
+
+	/**
+	 * @param min
+	 * @param max
+	 * @return
+	 */
+	protected double generateRandom(int min, int max) {
+		int value = (int) (Math.random() * (max - min + 1) + min);
+		return value;
+	}
+
+	public void clearPacmanAssets() {
+
+		// 2. Clear all active ghosts and cancel despawn timer
+		despawnGhosts();
+
+		// 3. Remove active Pacman sprite
+		if (currentPacmanImage != null) {
+			mainCanvas.remove(currentPacmanImage);
+			currentPacmanImage = null;
+		}
+
+		// 4. Remove all brick, rice, and fruit map widgets
+		if (mapWidgets != null) {
+			for (Widget w : mapWidgets) {
+				mainCanvas.remove(w);
+			}
+			mapWidgets.clear();
+		}
+
+		// 5. Clear grid array references
+		riceGrid = null;
+		fruitGrid = null;
+
+		// 6. Reset state variables
+		isGameFrozen = false;
+		riceChompCounter = 0;
+		totalRiceRemaining = 0;
+	}
+
+	/**
 	 * Resets Pacman to grid[1, 1] facing RIGHT awaiting input.
 	 * 
 	 * @param fullReset If true, resets score to 0 and reloads original Map_1.txt.
@@ -627,193 +1285,8 @@ public class MainLayout extends Composite {
 	}
 
 	/**
-	 * 
+	 * @param newDirection
 	 */
-	private void setupControlPanel(String mode) {
-		controlPanel.clear();
-		if (mode.equalsIgnoreCase(BALL)) {
-			controlPanel.add(ball.getUpButton());
-			HorizontalPanel hp = new HorizontalPanel();
-			hp.add(ball.getLeftButton());
-			hp.add(ball.getDownButton());
-			hp.add(ball.getRightButton());
-			controlPanel.add(hp);
-			controlPanel.add(ball.getPbKeyboard());
-			controlPanel.add(ball.getTbFriction());
-			controlPanel.setCellHorizontalAlignment(hp, HasHorizontalAlignment.ALIGN_CENTER);
-			controlPanel.setCellHorizontalAlignment(ball.getUpButton(), HasHorizontalAlignment.ALIGN_CENTER);
-		} else if (mode.equalsIgnoreCase(SPACE)) {
-			controlPanel.add(sf.getUpButton());
-			HorizontalPanel hp = new HorizontalPanel();
-			hp.add(sf.getLeftButton());
-			hp.add(sf.getDownButton());
-			hp.add(sf.getRightButton());
-			if (!sf.getUpButton().isEnabled() && !sf.getDownButton().isEnabled()) {
-				sf.getUpButton().setEnabled(true);
-				sf.getDownButton().setEnabled(true);
-			}
-			sf.getLeftButton().setEnabled(false);
-			sf.getRightButton().setEnabled(false);
-			controlPanel.add(hp);
-			controlPanel.add(sf.getPbKeyboard());
-			sf.getPbKeyboard().addKeyUpHandler(new KeyUpHandler() {
-
-				@Override
-				public void onKeyUp(KeyUpEvent event) {
-					/*
-					 * if (event.getNativeKeyCode() == KeyCodes.KEY_RIGHT) {
-					 * sf.moveX(physics.getForce(sf.getMass(), false, false)); } if
-					 * (event.getNativeKeyCode() == KeyCodes.KEY_LEFT) {
-					 * sf.moveX(-physics.getForce(sf.getMass(), false, false)); }
-					 */
-					if (event.getNativeKeyCode() == KeyCodes.KEY_UP) {
-						sf.moveY(-physics.getForce(sf.getMass(), false, false));
-					}
-					if (event.getNativeKeyCode() == KeyCodes.KEY_DOWN) {
-						sf.moveY(physics.getForce(sf.getMass(), false, false));
-					}
-					if (event.getNativeKeyCode() == KeyCodes.KEY_SPACE) {
-						Bullet bullet = new Bullet();
-						bullet.setTopStep(sf.getTopStep());
-						mainCanvas.add(bullet.getImage().asWidget());
-						Timer tBullet = new Timer() {
-
-							@Override
-							public void run() {
-								if (sf.getImage().isAttached()) {
-									bullet.moveX(physics.getForce(bullet.getMass(), false, false));
-								}
-								for (Asteroid asteroid : asteroids) {
-									if (physics.checkCollision(bullet, asteroid)) {
-										asteroid.setHits(1);
-										if (asteroid.getHits() == asteroid.getMass()) {
-											asteroid.getImage().removeFromParent();
-											asteroids.remove(asteroid);
-										}
-										cancel();
-										destroy();
-									}
-								}
-								if (bullet.getImage().getAbsoluteLeft() > 1200) {
-									cancel();
-									destroy();
-								}
-
-							}
-
-							private void destroy() {
-								bullet.getImage().removeFromParent();
-							}
-						};
-						tBullet.scheduleRepeating(50);
-					}
-				}
-			});
-
-			controlPanel.setCellHorizontalAlignment(hp, HasHorizontalAlignment.ALIGN_CENTER);
-			controlPanel.setCellHorizontalAlignment(sf.getUpButton(), HasHorizontalAlignment.ALIGN_CENTER);
-
-		} else if (mode.equalsIgnoreCase(SNAKE)) {
-
-			controlPanel.add(snake.getUpButton());
-			HorizontalPanel hp = new HorizontalPanel();
-			hp.add(snake.getLeftButton());
-			hp.add(snake.getDownButton());
-			hp.add(snake.getRightButton());
-			controlPanel.add(hp);
-			controlPanel.add(snake.getPbKeyboard());
-
-			controlPanel.setCellHorizontalAlignment(hp, HasHorizontalAlignment.ALIGN_CENTER);
-			controlPanel.setCellHorizontalAlignment(snake.getUpButton(), HasHorizontalAlignment.ALIGN_CENTER);
-			// Add this where you set up your control layout configurations
-			scoreLabel.getElement().getStyle().setProperty("textAlign", "center");
-			scoreLabel.getElement().getStyle().setProperty("fontSize", "20px");
-			scoreLabel.getElement().getStyle().setProperty("fontWeight", "bold");
-			scoreLabel.getElement().getStyle().setProperty("marginTop", "15px");
-			scoreLabel.getElement().getStyle().setProperty("fontFamily", "sans-serif");
-			scoreLabel.getElement().getStyle().setProperty("color", "#333");
-
-			// Add the score label right below your arrow button layout panel
-			controlPanel.add(scoreLabel);
-
-		} else {
-			int force = physics.getForce(pacMan.getMass(), false, false);
-
-			// UP Button
-			pacMan.getUpButton().addClickHandler(new ClickHandler() {
-				@Override
-				public void onClick(ClickEvent event) {
-					changePacmanDirection(Direction.UP);
-				}
-			});
-			controlPanel.add(pacMan.getUpButton());
-
-			HorizontalPanel hp = new HorizontalPanel();
-
-			// LEFT Button
-			pacMan.getLeftButton().addClickHandler(new ClickHandler() {
-				@Override
-				public void onClick(ClickEvent event) {
-					changePacmanDirection(Direction.LEFT);
-				}
-			});
-			hp.add(pacMan.getLeftButton());
-
-			// DOWN Button
-			pacMan.getDownButton().addClickHandler(new ClickHandler() {
-				@Override
-				public void onClick(ClickEvent event) {
-					changePacmanDirection(Direction.DOWN);
-				}
-			});
-			hp.add(pacMan.getDownButton());
-
-			// RIGHT Button
-			pacMan.getRightButton().addClickHandler(new ClickHandler() {
-				@Override
-				public void onClick(ClickEvent event) {
-					changePacmanDirection(Direction.RIGHT);
-				}
-			});
-			hp.add(pacMan.getRightButton());
-
-			controlPanel.add(hp);
-			controlPanel.add(pacMan.getPbKeyboard());
-
-			// Keyboard Handler
-			pacMan.getPbKeyboard().addKeyUpHandler(new KeyUpHandler() {
-				@Override
-				public void onKeyUp(KeyUpEvent event) {
-					int keyCode = event.getNativeKeyCode();
-
-					if (keyCode == KeyCodes.KEY_RIGHT) {
-						changePacmanDirection(Direction.RIGHT);
-					} else if (keyCode == KeyCodes.KEY_LEFT) {
-						changePacmanDirection(Direction.LEFT);
-					} else if (keyCode == KeyCodes.KEY_UP) {
-						changePacmanDirection(Direction.UP);
-					} else if (keyCode == KeyCodes.KEY_DOWN) {
-						changePacmanDirection(Direction.DOWN);
-					}
-				}
-			});
-
-			controlPanel.setCellHorizontalAlignment(hp, HasHorizontalAlignment.ALIGN_CENTER);
-			controlPanel.setCellHorizontalAlignment(pacMan.getUpButton(), HasHorizontalAlignment.ALIGN_CENTER);
-
-			// Score Label Configuration for Pacman Mode
-			scoreLabel.getElement().getStyle().setProperty("textAlign", "center");
-			scoreLabel.getElement().getStyle().setProperty("fontSize", "20px");
-			scoreLabel.getElement().getStyle().setProperty("fontWeight", "bold");
-			scoreLabel.getElement().getStyle().setProperty("marginTop", "15px");
-			scoreLabel.getElement().getStyle().setProperty("fontFamily", "sans-serif");
-			scoreLabel.getElement().getStyle().setProperty("color", "#333");
-
-			controlPanel.add(scoreLabel);
-		}
-
-	}
-
 	private void changePacmanDirection(String newDirection) {
 		if (isGameFrozen)
 			return;
@@ -846,6 +1319,9 @@ public class MainLayout extends Composite {
 		}
 	}
 
+	/**
+	 * 
+	 */
 	private void startPacmanTimer() {
 		if (t != null) {
 			t.cancel();
@@ -859,6 +1335,9 @@ public class MainLayout extends Composite {
 		t.scheduleRepeating(timerInterval);
 	}
 
+	/**
+	 * 
+	 */
 	public void renderMap() {
 		for (Widget w : mapWidgets) {
 			mainCanvas.remove(w);
@@ -919,6 +1398,9 @@ public class MainLayout extends Composite {
 		}
 	}
 
+	/**
+	 * 
+	 */
 	private void checkItemCollision() {
 		int col = Math.round((float) pacMan.getRightStep() / 30);
 		int row = Math.round((float) pacMan.getTopStep() / 30);
@@ -1037,6 +1519,9 @@ public class MainLayout extends Composite {
 		ghostDespawnTimer.schedule(5000);
 	}
 
+	/**
+	 * 
+	 */
 	private void despawnGhosts() {
 		if (ghostDespawnTimer != null) {
 			ghostDespawnTimer.cancel();
@@ -1047,6 +1532,9 @@ public class MainLayout extends Composite {
 		activeGhosts.clear();
 	}
 
+	/**
+	 * 
+	 */
 	private void checkGhostCollision() {
 		int pacCol = Math.round((float) pacMan.getRightStep() / 30);
 		int pacRow = Math.round((float) pacMan.getTopStep() / 30);
@@ -1056,8 +1544,9 @@ public class MainLayout extends Composite {
 			int ghostRow = Math.round((float) g.getTopStep() / 30);
 
 			if (pacCol == ghostCol && pacRow == ghostRow) {
-				com.google.gwt.user.client.Window.alert("Game Over! Pacman was caught by a ghost.");
+				int finalScore = score;
 				resetPacmanGame(true); // Full reset: score = 0, reloads Map_1.txt
+				showPacmanGameOverDialog(finalScore);
 				return;
 			}
 		}
@@ -1211,95 +1700,61 @@ public class MainLayout extends Composite {
 	}
 
 	/**
-	 * 
+	 * Deprecated File Editor
 	 */
-	private void setUpEditorButtonHandlers() {
-
-		buttonPanel.add(fileEditor.getNewButton());
-		buttonPanel.add(fileEditor.getEditButton());
-		buttonPanel.add(fileEditor.getSaveButton());
-		buttonPanel.add(fileEditor.getLoadButton());
-
-		ClickHandler openHandler = new ClickHandler() {
-
-			@Override
-			public void onClick(ClickEvent event) {
-				if (t != null) {
-					t.cancel();
-				}
-				taCanvas.setValue("");
-				taCanvas.setVisible(true);
-				tbDocument.setVisible(true);
-				upload.getOpenButton().setEnabled(true);
-				canvasPanel.setVisible(true);
-				buttonPanel.setVisible(true);
-				upload.center();
-				upload.setGlassEnabled(true);
-				tbDocument.setReadOnly(true);
-				mainCanvas.remove(ball.getImage());
-				mainCanvas.remove(sf.getImage());
-				clearAsteroids();
-				controlPanel.setVisible(false);
-				setEnabled(false, true);
-			}
-		};
-		fileEditor.getPbFileEditor().addClickHandler(openHandler);
-		fileEditor.getLoadButton().addClickHandler(openHandler);
-		upload.getCloseButton().addClickHandler(new ClickHandler() {
-
-			@Override
-			public void onClick(ClickEvent event) {
-				taCanvas.setValue(upload.getData());
-				tbDocument.setVisible(true);
-				tbDocument.setValue(upload.getUpload().getFilename());
-				tbDocument.setReadOnly(true);
-				upload.hide();
-			}
-		});
-		fileEditor.getNewButton().addClickHandler(new ClickHandler() {
-
-			@Override
-			public void onClick(ClickEvent event) {
-				tbDocument.setReadOnly(false);
-				String filename = upload.getUpload().getFilename();
-				if (filename == null || filename.trim().isEmpty()) {
-					tbDocument.setValue("Enter path here");
-				}
-				taCanvas.setValue("");
-
-			}
-		});
-		fileEditor.getEditButton().addClickHandler(new ClickHandler() {
-
-			@Override
-			public void onClick(ClickEvent event) {
-				taCanvas.setReadOnly(false);
-				tbDocument.setReadOnly(true);
-			}
-		});
-		fileEditor.getSaveButton().addClickHandler(new ClickHandler() {
-
-			@Override
-			public void onClick(ClickEvent event) {
-				fileService.saveFile(tbDocument.getValue(), taCanvas.getValue(), new AsyncCallback<String>() {
-
-					@Override
-					public void onFailure(Throwable caught) {
-						Window.alert(caught.getLocalizedMessage());
-					}
-
-					@Override
-					public void onSuccess(String result) {
-						taCanvas.setReadOnly(true);
-						tbDocument.setReadOnly(true);
-						Window.alert(result);
-					}
-				});
-
-			}
-		});
-
-	}
+	/*
+	 * private void setUpEditorButtonHandlers() {
+	 * 
+	 * buttonPanel.add(fileEditor.getNewButton());
+	 * buttonPanel.add(fileEditor.getEditButton());
+	 * buttonPanel.add(fileEditor.getSaveButton());
+	 * buttonPanel.add(fileEditor.getLoadButton());
+	 * 
+	 * ClickHandler openHandler = new ClickHandler() {
+	 * 
+	 * @Override public void onClick(ClickEvent event) { if (t != null) {
+	 * t.cancel(); } taCanvas.setValue(""); taCanvas.setVisible(true);
+	 * tbDocument.setVisible(true); upload.getOpenButton().setEnabled(true);
+	 * canvasPanel.setVisible(true); buttonPanel.setVisible(true); upload.center();
+	 * upload.setGlassEnabled(true); tbDocument.setReadOnly(true);
+	 * mainCanvas.remove(ball.getImage()); mainCanvas.remove(sf.getImage());
+	 * clearAsteroids(); controlPanel.setVisible(false); setEnabled(false, true); }
+	 * }; fileEditor.getPbFileEditor().addClickHandler(openHandler);
+	 * fileEditor.getLoadButton().addClickHandler(openHandler);
+	 * upload.getCloseButton().addClickHandler(new ClickHandler() {
+	 * 
+	 * @Override public void onClick(ClickEvent event) {
+	 * taCanvas.setValue(upload.getData()); tbDocument.setVisible(true);
+	 * tbDocument.setValue(upload.getUpload().getFilename());
+	 * tbDocument.setReadOnly(true); upload.hide(); } });
+	 * fileEditor.getNewButton().addClickHandler(new ClickHandler() {
+	 * 
+	 * @Override public void onClick(ClickEvent event) {
+	 * tbDocument.setReadOnly(false); String filename =
+	 * upload.getUpload().getFilename(); if (filename == null ||
+	 * filename.trim().isEmpty()) { tbDocument.setValue("Enter path here"); }
+	 * taCanvas.setValue("");
+	 * 
+	 * } }); fileEditor.getEditButton().addClickHandler(new ClickHandler() {
+	 * 
+	 * @Override public void onClick(ClickEvent event) {
+	 * taCanvas.setReadOnly(false); tbDocument.setReadOnly(true); } });
+	 * fileEditor.getSaveButton().addClickHandler(new ClickHandler() {
+	 * 
+	 * @Override public void onClick(ClickEvent event) {
+	 * fileService.saveFile(tbDocument.getValue(), taCanvas.getValue(), new
+	 * AsyncCallback<String>() {
+	 * 
+	 * @Override public void onFailure(Throwable caught) {
+	 * Window.alert(caught.getLocalizedMessage()); }
+	 * 
+	 * @Override public void onSuccess(String result) { taCanvas.setReadOnly(true);
+	 * tbDocument.setReadOnly(true); Window.alert(result); } });
+	 * 
+	 * } });
+	 * 
+	 * }
+	 */
 
 	/**
 	 * @param enabled
@@ -1317,6 +1772,382 @@ public class MainLayout extends Composite {
 			getElement().addClassName(enabled ? style.enabledSpace() : style.enabledBall());
 			getElement().removeClassName(enabled ? style.disabled() : style.enabledSpace());
 			getElement().removeClassName(enabled ? style.enabledBall() : style.enabledSpace());
+		}
+
+	}
+
+	/**
+	 * @return true or false
+	 */
+	private native boolean isBrowserFullScreen() /*-{
+		var doc = $doc;
+		var apiFull = Boolean(doc.fullscreenElement
+				|| doc.webkitFullscreenElement || doc.mozFullScreenElement
+				|| doc.msFullscreenElement);
+		if (apiFull) {
+			return true;
+		}
+		var win = $wnd;
+		var scr = win.screen;
+		if (scr && scr.height && win.innerHeight) {
+			return win.innerHeight >= scr.height * 0.92
+					&& win.innerWidth >= scr.width * 0.95;
+		}
+		return false;
+	}-*/;
+
+	/**
+	 * 
+	 */
+	private void applySpaceBackgroundStyle() {
+		String bgPosY = isBrowserFullScreen() ? "125px" : "50%";
+		mainCanvas.getParent().getElement().setAttribute("style", "position: absolute; inset: 0px;background-position:"
+				+ sf.getDistance() + "px " + bgPosY + ";background-repeat:repeat-x;");
+	}
+
+	/**
+	 * @param clientWidth
+	 */
+	private void applyHeaderViewportStyle(int clientWidth) {
+		boolean mobile = clientWidth <= 768;
+		String fontSize = mobile ? "24px" : "100px";
+		boolean enableCanvasGames = !mobile;
+
+		if (sf != null && sf.getPbSpaceForce() != null) {
+			sf.getPbSpaceForce().setEnabled(enableCanvasGames);
+			sf.getPbSpaceForce().setTitle(mobile ? "Available on desktop" : "");
+		}
+		if (snake != null && snake.getPbSnake() != null) {
+			snake.getPbSnake().setEnabled(enableCanvasGames);
+			snake.getPbSnake().setTitle(mobile ? "Available on desktop" : "");
+		}
+		if (pacMan != null && pacMan.getPbPacman() != null) {
+			pacMan.getPbPacman().setEnabled(enableCanvasGames);
+			pacMan.getPbPacman().setTitle(mobile ? "Available on desktop" : "");
+		}
+		headerLabel.getElement().setAttribute("style",
+				"font-weight: bold;font-size:" + fontSize + ";text-align:center;");
+
+		if (splitLayout == null || mainPanel == null) {
+			return;
+		}
+
+		try {
+			splitLayout.setWidgetSize(mainPanel, mobile ? 165 : 360);
+			if (controlPanel != null) {
+				splitLayout.setWidgetSize(controlPanel, mobile ? 90 : 360);
+			}
+
+			String mainWidth = mobile ? "150px" : "";
+			String itemWidth = mobile ? "110px" : "220px";
+			String parentWidth = mobile ? "115px" : "";
+
+			mainPanel.setWidth(mainWidth);
+			mainPanel.getElement().getStyle().setProperty("maxWidth", mainWidth);
+			mainPanel.getElement().getStyle().setProperty("boxSizing", "border-box");
+
+			for (Widget w : mainPanel) {
+				w.setWidth(itemWidth);
+				w.getElement().getStyle().setProperty("width", itemWidth);
+				w.getElement().getStyle().setProperty("minWidth", mobile ? "0px" : "");
+				w.getElement().getStyle().setProperty("maxWidth", mobile ? itemWidth : "");
+				w.getElement().getStyle().setProperty("boxSizing", mobile ? "border-box" : "");
+				w.getElement().getStyle().setProperty("whiteSpace", mobile ? "nowrap" : "");
+				w.getElement().getStyle().setProperty("overflow", mobile ? "hidden" : "");
+				w.getElement().getStyle().setProperty("textOverflow", mobile ? "ellipsis" : "");
+
+				if (w.getParent() != null) {
+					w.getParent().getElement().getStyle().setProperty("width", parentWidth);
+					w.getParent().getElement().getStyle().setProperty("boxSizing", mobile ? "border-box" : "");
+					w.getParent().getElement().getStyle().setProperty("overflow", mobile ? "hidden" : "");
+				}
+			}
+
+			if (controlPanel != null) {
+				controlPanel.setWidth(mobile ? "85px" : "");
+				controlPanel.getElement().getStyle().setProperty("boxSizing", mobile ? "border-box" : "");
+				for (Widget w : controlPanel) {
+					w.getElement().getStyle().setProperty("maxWidth", mobile ? "80px" : "");
+					w.getElement().getStyle().setProperty("boxSizing", mobile ? "border-box" : "");
+					w.getElement().getStyle().setProperty("overflow", mobile ? "hidden" : "");
+				}
+			}
+
+			com.google.gwt.core.client.Scheduler.get().scheduleDeferred(() -> {
+				if (splitLayout != null) {
+					splitLayout.forceLayout();
+				}
+			});
+		} catch (Exception ex) {
+			GWT.log("Error applying viewport layout styles", ex);
+		}
+	}
+
+	/**
+	 * 
+	 */
+	private void setupControlPanel(String mode) {
+		controlPanel.clear();
+		/*
+		 * Deprecated if (mode.equalsIgnoreCase(BALL)) {
+		 * controlPanel.add(ball.getUpButton()); HorizontalPanel hp = new
+		 * HorizontalPanel(); hp.add(ball.getLeftButton());
+		 * hp.add(ball.getDownButton()); hp.add(ball.getRightButton());
+		 * controlPanel.add(hp); controlPanel.add(ball.getPbKeyboard());
+		 * controlPanel.add(ball.getTbFriction());
+		 * controlPanel.setCellHorizontalAlignment(hp,
+		 * HasHorizontalAlignment.ALIGN_CENTER);
+		 * controlPanel.setCellHorizontalAlignment(ball.getUpButton(),
+		 * HasHorizontalAlignment.ALIGN_CENTER); } else
+		 */
+
+		if (mode.equalsIgnoreCase(SPACE)) {
+			controlPanel.add(sf.getUpButton());
+			HorizontalPanel hp = new HorizontalPanel();
+			hp.add(sf.getLeftButton());
+			hp.add(sf.getDownButton());
+			hp.add(sf.getRightButton());
+			if (!sf.getUpButton().isEnabled() && !sf.getDownButton().isEnabled()) {
+				sf.getUpButton().setEnabled(true);
+				sf.getDownButton().setEnabled(true);
+			}
+			sf.getLeftButton().setEnabled(false);
+			sf.getRightButton().setEnabled(false);
+			controlPanel.add(hp);
+			controlPanel.add(sf.getPbKeyboard());
+
+			if (!spaceHandlersInitialized) {
+				sf.getUpButton().addMouseDownHandler(event -> sf.setHoldingUp(true));
+				sf.getUpButton().addMouseUpHandler(event -> sf.setHoldingUp(false));
+				sf.getUpButton().addMouseOutHandler(event -> sf.setHoldingUp(false));
+
+				sf.getDownButton().addMouseDownHandler(event -> sf.setHoldingDown(true));
+				sf.getDownButton().addMouseUpHandler(event -> sf.setHoldingDown(false));
+				sf.getDownButton().addMouseOutHandler(event -> sf.setHoldingDown(false));
+
+				sf.getPbKeyboard().addKeyDownHandler(event -> {
+					if (event.getNativeKeyCode() == KeyCodes.KEY_UP) {
+						sf.setHoldingUp(true);
+					} else if (event.getNativeKeyCode() == KeyCodes.KEY_DOWN) {
+						sf.setHoldingDown(true);
+					}
+				});
+
+				sf.getPbKeyboard().addKeyUpHandler(new KeyUpHandler() {
+
+					@Override
+					public void onKeyUp(KeyUpEvent event) {
+						/*
+						 * if (event.getNativeKeyCode() == KeyCodes.KEY_RIGHT) {
+						 * sf.moveX(physics.getForce(sf.getMass(), false, false)); } if
+						 * (event.getNativeKeyCode() == KeyCodes.KEY_LEFT) {
+						 * sf.moveX(-physics.getForce(sf.getMass(), false, false)); }
+						 */
+						if (event.getNativeKeyCode() == KeyCodes.KEY_UP) {
+							sf.setHoldingUp(false);
+						}
+						if (event.getNativeKeyCode() == KeyCodes.KEY_DOWN) {
+							sf.setHoldingDown(false);
+						}
+						if (event.getNativeKeyCode() == KeyCodes.KEY_SPACE) {
+							if (bulletsRemaining <= 0) {
+								return; // Out of ammo: navigate with UP/DOWN until picking up a power-up
+							}
+							bulletsRemaining--;
+							updateSpaceHud();
+
+							Bullet bullet = new Bullet();
+							bullet.setTopStep(sf.getTopStep());
+							mainCanvas.add(bullet.getImage().asWidget());
+							Timer tBullet = new Timer() {
+								@Override
+								public void run() {
+									if (sf.getImage().isAttached()) {
+										bullet.moveX(physics.getForce(bullet.getMass(), false, false));
+									}
+									for (int i = asteroids.size() - 1; i >= 0; i--) {
+										Asteroid asteroid = asteroids.get(i);
+										if (physics.checkCollision(bullet, asteroid)) {
+											int hitLeft = asteroid.getImage().getAbsoluteLeft();
+											int hitTop = asteroid.getImage().getAbsoluteTop();
+											int hitWidth = asteroid.getImage().getOffsetWidth();
+											int hitHeight = asteroid.getImage().getOffsetHeight();
+
+											asteroid.setHits(1);
+											asteroid.setHits(1);
+											if (asteroid.getHits() >= asteroid.getMass()) {
+												asteroid.getImage().removeFromParent();
+												asteroids.remove(i);
+												removeSpaceAsteroidRef(asteroid);
+												asteroidsDestroyed++;
+												updateSpaceHud();
+												spawnExplosion(hitLeft, hitTop, hitWidth, hitHeight);
+
+												if (asteroidsDestroyed > 0 && asteroidsDestroyed % 50 == 0) {
+													extraLives++;
+													addLifeCoinToHud();
+													spawnExtraLifeBanner();
+												}
+											}
+											cancel();
+											destroy();
+											return;
+										}
+									}
+									if (bullet.getImage().getAbsoluteLeft() > 1200) {
+										cancel();
+										destroy();
+									}
+								}
+
+								private void destroy() {
+									bullet.getImage().removeFromParent();
+								}
+							};
+							tBullet.scheduleRepeating(50);
+						}
+					}
+				});
+				spaceHandlersInitialized = true;
+			}
+
+			controlPanel.setCellHorizontalAlignment(hp, HasHorizontalAlignment.ALIGN_CENTER);
+			controlPanel.setCellHorizontalAlignment(sf.getUpButton(), HasHorizontalAlignment.ALIGN_CENTER);
+			ammoLabel.getElement().getStyle().setProperty("textAlign", "center");
+			ammoLabel.getElement().getStyle().setProperty("fontSize", "20px");
+			ammoLabel.getElement().getStyle().setProperty("fontWeight", "bold");
+			ammoLabel.getElement().getStyle().setProperty("marginTop", "10px");
+			ammoLabel.getElement().getStyle().setProperty("fontFamily", "sans-serif");
+			ammoLabel.getElement().getStyle().setProperty("color", "#FFFFFF");
+
+			survivalLabel.getElement().getStyle().setProperty("textAlign", "center");
+			survivalLabel.getElement().getStyle().setProperty("fontSize", "20px");
+			survivalLabel.getElement().getStyle().setProperty("fontWeight", "bold");
+			survivalLabel.getElement().getStyle().setProperty("marginTop", "6px");
+			survivalLabel.getElement().getStyle().setProperty("fontFamily", "sans-serif");
+			survivalLabel.getElement().getStyle().setProperty("color", "#FFFFFF");
+
+			Label legendLabel = new Label("Shoot: Space bar  •  Power-up: Every 30s");
+			legendLabel.getElement().getStyle().setProperty("textAlign", "center");
+			legendLabel.getElement().getStyle().setProperty("fontSize", "13px");
+			legendLabel.getElement().getStyle().setProperty("fontWeight", "normal");
+			legendLabel.getElement().getStyle().setProperty("marginTop", "10px");
+			legendLabel.getElement().getStyle().setProperty("fontFamily", "sans-serif");
+			legendLabel.getElement().getStyle().setProperty("color", "#FFFFFF");
+			legendLabel.getElement().getStyle().setProperty("opacity", "0.9");
+
+			asteroidsLabel.getElement().getStyle().setProperty("textAlign", "center");
+			asteroidsLabel.getElement().getStyle().setProperty("fontSize", "20px");
+			asteroidsLabel.getElement().getStyle().setProperty("fontWeight", "bold");
+			asteroidsLabel.getElement().getStyle().setProperty("marginTop", "6px");
+			asteroidsLabel.getElement().getStyle().setProperty("fontFamily", "sans-serif");
+			asteroidsLabel.getElement().getStyle().setProperty("color", "#FFFFFF");
+
+			lifePanel.getElement().getStyle().setProperty("marginTop", "8px");
+
+			controlPanel.add(ammoLabel);
+			controlPanel.add(survivalLabel);
+			controlPanel.add(asteroidsLabel);
+			controlPanel.add(legendLabel);
+			controlPanel.add(lifePanel);
+			controlPanel.setCellHorizontalAlignment(lifePanel, HasHorizontalAlignment.ALIGN_CENTER);
+
+		} else if (mode.equalsIgnoreCase(SNAKE)) {
+
+			controlPanel.add(snake.getUpButton());
+			HorizontalPanel hp = new HorizontalPanel();
+			hp.add(snake.getLeftButton());
+			hp.add(snake.getDownButton());
+			hp.add(snake.getRightButton());
+			controlPanel.add(hp);
+			controlPanel.add(snake.getPbKeyboard());
+
+			controlPanel.setCellHorizontalAlignment(hp, HasHorizontalAlignment.ALIGN_CENTER);
+			controlPanel.setCellHorizontalAlignment(snake.getUpButton(), HasHorizontalAlignment.ALIGN_CENTER);
+			// Add this where you set up your control layout configurations
+			scoreLabel.getElement().getStyle().setProperty("textAlign", "center");
+			scoreLabel.getElement().getStyle().setProperty("fontSize", "20px");
+			scoreLabel.getElement().getStyle().setProperty("fontWeight", "bold");
+			scoreLabel.getElement().getStyle().setProperty("marginTop", "15px");
+			scoreLabel.getElement().getStyle().setProperty("fontFamily", "sans-serif");
+			scoreLabel.getElement().getStyle().setProperty("color", "#333");
+
+			// Add the score label right below your arrow button layout panel
+			controlPanel.add(scoreLabel);
+
+		} else {
+
+			// UP Button
+			pacMan.getUpButton().addClickHandler(new ClickHandler() {
+				@Override
+				public void onClick(ClickEvent event) {
+					changePacmanDirection(Direction.UP);
+				}
+			});
+			controlPanel.add(pacMan.getUpButton());
+
+			HorizontalPanel hp = new HorizontalPanel();
+
+			// LEFT Button
+			pacMan.getLeftButton().addClickHandler(new ClickHandler() {
+				@Override
+				public void onClick(ClickEvent event) {
+					changePacmanDirection(Direction.LEFT);
+				}
+			});
+			hp.add(pacMan.getLeftButton());
+
+			// DOWN Button
+			pacMan.getDownButton().addClickHandler(new ClickHandler() {
+				@Override
+				public void onClick(ClickEvent event) {
+					changePacmanDirection(Direction.DOWN);
+				}
+			});
+			hp.add(pacMan.getDownButton());
+
+			// RIGHT Button
+			pacMan.getRightButton().addClickHandler(new ClickHandler() {
+				@Override
+				public void onClick(ClickEvent event) {
+					changePacmanDirection(Direction.RIGHT);
+				}
+			});
+			hp.add(pacMan.getRightButton());
+
+			controlPanel.add(hp);
+			controlPanel.add(pacMan.getPbKeyboard());
+
+			// Keyboard Handler
+			pacMan.getPbKeyboard().addKeyUpHandler(new KeyUpHandler() {
+				@Override
+				public void onKeyUp(KeyUpEvent event) {
+					int keyCode = event.getNativeKeyCode();
+
+					if (keyCode == KeyCodes.KEY_RIGHT) {
+						changePacmanDirection(Direction.RIGHT);
+					} else if (keyCode == KeyCodes.KEY_LEFT) {
+						changePacmanDirection(Direction.LEFT);
+					} else if (keyCode == KeyCodes.KEY_UP) {
+						changePacmanDirection(Direction.UP);
+					} else if (keyCode == KeyCodes.KEY_DOWN) {
+						changePacmanDirection(Direction.DOWN);
+					}
+				}
+			});
+
+			controlPanel.setCellHorizontalAlignment(hp, HasHorizontalAlignment.ALIGN_CENTER);
+			controlPanel.setCellHorizontalAlignment(pacMan.getUpButton(), HasHorizontalAlignment.ALIGN_CENTER);
+
+			// Score Label Configuration for Pacman Mode
+			scoreLabel.getElement().getStyle().setProperty("textAlign", "center");
+			scoreLabel.getElement().getStyle().setProperty("fontSize", "20px");
+			scoreLabel.getElement().getStyle().setProperty("fontWeight", "bold");
+			scoreLabel.getElement().getStyle().setProperty("marginTop", "15px");
+			scoreLabel.getElement().getStyle().setProperty("fontFamily", "sans-serif");
+			scoreLabel.getElement().getStyle().setProperty("color", "#333");
+
+			controlPanel.add(scoreLabel);
 		}
 
 	}

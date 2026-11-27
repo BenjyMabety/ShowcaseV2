@@ -6,11 +6,17 @@ import com.google.gwt.user.client.ui.Image;
 import tmg.za.shared.Movable;
 import tmg.za.shared.Physics;
 
+/**
+ * Bullet class
+ */
 public class Bullet extends Movable {
 
 	tmg.za.client.Resources.Resources resources = GWT.create(tmg.za.client.Resources.Resources.class);
 	Physics physics = new Physics();
 
+	/**
+	 * Bullet constructor
+	 */
 	public Bullet() {
 		image = new Image(resources.bullet());
 		mass = 1;

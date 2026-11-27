@@ -1,5 +1,8 @@
 package tmg.za.shared;
 
+/**
+ * Direction class
+ */
 public class Direction {
 
 	public final static String RIGHT = "RIGHT";

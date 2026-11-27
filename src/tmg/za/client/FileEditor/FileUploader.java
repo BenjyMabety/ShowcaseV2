@@ -94,7 +94,7 @@ public class FileUploader extends DialogBox {
 	}
 
 	/**
-	 * @return
+	 * @return openButton
 	 */
 	public Button getOpenButton() {
 		return openButton;
@@ -108,7 +108,7 @@ public class FileUploader extends DialogBox {
 	}
 
 	/**
-	 * @return
+	 * @return closeButton
 	 */
 	public Button getCloseButton() {
 		return closeButton;
@@ -122,7 +122,7 @@ public class FileUploader extends DialogBox {
 	}
 
 	/**
-	 * @return
+	 * @return upload
 	 */
 	public FileUpload getUpload() {
 		return upload;

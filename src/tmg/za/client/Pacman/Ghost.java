@@ -8,6 +8,9 @@ import com.google.gwt.user.client.ui.Image;
 import tmg.za.shared.Movable;
 import tmg.za.shared.Physics;
 
+/**
+ * Ghost class
+ */
 public class Ghost extends Movable {
 
 	public enum GhostType {
@@ -39,14 +42,23 @@ public class Ghost extends Movable {
 		blue_ghost = createSizedImage(resources.blue_ghost());
 	}
 
+	/**
+	 * @return type
+	 */
 	public GhostType getType() {
 		return type;
 	}
 
+	/**
+	 * @param type
+	 */
 	public void setType(GhostType type) {
 		this.type = type;
 	}
 
+	/**
+	 * 
+	 */
 	public void updatePosition() {
 		Image current = getImage();
 		if (current != null) {
@@ -81,6 +93,10 @@ public class Ghost extends Movable {
 		}
 	}
 
+	/**
+	 * @param res
+	 * @return img
+	 */
 	private Image createSizedImage(com.google.gwt.resources.client.ImageResource res) {
 		Image img = new Image(res);
 		img.setPixelSize(GHOST_SIZE, GHOST_SIZE);

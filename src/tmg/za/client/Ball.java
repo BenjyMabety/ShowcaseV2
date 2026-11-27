@@ -20,7 +20,7 @@ import tmg.za.shared.Movable;
 import tmg.za.shared.Physics;
 
 /**
- * 
+ * Ball physics engine (Not deployed)
  */
 public class Ball extends Movable {
 
@@ -38,7 +38,7 @@ public class Ball extends Movable {
 	private Audio bounce;
 
 	/**
-	 * 
+	 * Ball constructor
 	 */
 	public Ball() {
 		image = new Image(resources.ball());
@@ -128,7 +128,7 @@ public class Ball extends Movable {
 	}
 
 	/**
-	 * @return
+	 * @return suspended
 	 */
 	public boolean isSuspended() {
 		return suspended;
@@ -142,7 +142,7 @@ public class Ball extends Movable {
 	}
 
 	/**
-	 * @return
+	 * @return moving
 	 */
 	public boolean isMoving() {
 		return moving;
@@ -165,7 +165,7 @@ public class Ball extends Movable {
 	}
 
 	/**
-	 * @return
+	 * @return stationary
 	 */
 	public boolean isStationary() {
 		return stationary;
@@ -179,7 +179,7 @@ public class Ball extends Movable {
 	}
 
 	/**
-	 * @return
+	 * @return tbFriction
 	 */
 	public ToggleButton getTbFriction() {
 		return tbFriction;
@@ -193,7 +193,7 @@ public class Ball extends Movable {
 	}
 
 	/**
-	 * @return
+	 * @return pbBall
 	 */
 	public PushButton getPbBall() {
 		return pbBall;
@@ -207,7 +207,7 @@ public class Ball extends Movable {
 	}
 
 	/**
-	 * @return
+	 * @return bounce
 	 */
 	public Audio getBounce() {
 		return bounce;

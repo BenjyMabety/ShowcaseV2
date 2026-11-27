@@ -20,6 +20,9 @@ import com.google.gwt.user.client.ui.Widget;
 
 import tmg.za.shared.FieldVerifier;
 
+/**
+ * Login Dialog (Not deployed)
+ */
 public class Login extends DialogBox {
 
 	private static LoginUiBinder uiBinder = GWT.create(LoginUiBinder.class);
@@ -164,7 +167,7 @@ public class Login extends DialogBox {
 	}
 
 	/**
-	 * @return
+	 * @return pbLogin
 	 */
 	public PushButton getPbLogin() {
 		return pbLogin;
