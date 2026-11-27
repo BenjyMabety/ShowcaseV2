@@ -1,9 +1,6 @@
-# 🚀 ShowcaseV2-https://github.com/BenjyMabety/ShowcaseV2
+# 🚀 ShowcaseV2 - https://github.com/BenjyMabety/ShowcaseV2
 
-
-App deployed on github pages: https://benjymabety.github.io/ShowcaseV2/
-
-
+App deployed on github pages: <a href="https://benjymabety.github.io/ShowcaseV2/" target="_blank" rel="noopener noreferrer">https://benjymabety.github.io/ShowcaseV2/</a>
 
 An interactive rich-client web application showcasing arcade-style mini-games (Snake, Spaceforce) built using **Java** and **Google Web Toolkit (GWT)**, running on an **Apache Tomcat** application server.
 
@@ -12,10 +9,10 @@ An interactive rich-client web application showcasing arcade-style mini-games (S
 ## 🛠️ Prerequisites
 
 To run this application locally, you will need to download and install the following software packages:
-*   **Java Development Kit (JDK)**: Version 8 or newer (Download via [Oracle Java Downloads](https://oracle.com) or [OpenJDK](https://openjdk.org)).
-*   **IDE**: Eclipse (The [Eclipse IDE for Enterprise Java Developers](https://eclipse.org) flavor is highly recommended for native deployment wizards).
-*   **GWT SDK**: Version 2.12.1 installed/linked (Download zip directly from the [GWT Project Official Download Page](https://gwtproject.org) or track updates on [GitHub GWT Project Releases](https://github.com)).
-*   **Application Server**: Apache Tomcat (v9.0+ recommended) (Download archives or installer binaries via [Apache Tomcat 9 Software Downloads](https://apache.org)).
+-   **Java Development Kit (JDK)**: Version 8 or newer (Download via [Oracle Java Downloads](https://oracle.com) or [OpenJDK](https://openjdk.org)).
+-   **IDE**: Eclipse (The [Eclipse IDE for Enterprise Java Developers](https://eclipse.org) flavor is highly recommended for native deployment wizards).
+-   **GWT SDK**: Version 2.12.1 installed/linked (Download zip directly from the [GWT Project Official Download Page](https://gwtproject.org) or track updates on [GitHub GWT Project Releases](https://github.com)).
+-   **Application Server**: Apache Tomcat (v9.0+ recommended) (Download archives or installer binaries via [Apache Tomcat 9 Software Downloads](https://apache.org)).
 
 ---
 
@@ -57,26 +54,3 @@ You can deploy this application to a standalone Tomcat environment using one of 
 Start your Tomcat web service and navigate to:
 ```text
 http://localhost:8080/Showcase/Showcase.html
-```
-
----
-### Docker setup
-# 1. Build the Docker image using your multi-stage Dockerfile
-docker build -t showcase-app .
-
-# 2. Stop and remove any existing container instance (if running)
-docker stop showcase-container
-docker rm showcase-container
-
-# 3. Run the fresh container, mapping port 8080
-docker run -d -p 8080:8080 --name showcase-container showcase-app
-
-## 📋 Project Roadmap & TO-DOs
-
-### ⚙️ Architecture & Build Management
-- [ ] **Implement Maven/Gradle Build Scripts**: Migrate the build structure to Maven (`pom.xml`) or Gradle to eliminate IDE-specific dependencies and allow automated one-command WAR packaging.
-- [ ] **Add Git Environment Filters**: Introduce a generic root `.gitignore` file to scrub IDE-specific metadata (`.settings/`, `.classpath`) and local compilation dumps (`/gwt-unitCache/`) from public tracking.
-
-### 🎮 Gameplay Optimization
-- [ ] **Abstract Object Movement Engine**: Refactor standard positioning metrics across different games into a streamlined, reusable rendering pipeline within the shared `Movable` structure.
-- [ ] **Enhance Input Latency Handling**: Introduce an event processing queue to store high-speed button commands sequentially, preventing overlapping input checks inside tight frames.
